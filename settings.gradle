@@ -1,0 +1,2 @@
+include ':app', ':libausbc'
+project(':libausbc').projectDir = new File(settingsDir, 'libs/libausbc')
