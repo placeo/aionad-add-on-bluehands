@@ -1,9 +1,12 @@
 package com.skt.aionad.addon;
 
+import android.graphics.Point;
+import android.graphics.Rect;
 import android.Manifest;
 import android.app.Activity;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
+import android.os.Build;
 import android.os.PowerManager;
 import androidx.annotation.NonNull;
 import androidx.core.app.ActivityCompat;
@@ -22,6 +25,7 @@ import android.content.Context;
 import android.content.Intent;
 import com.skt.aionad.addon.server.KtorServerService;
 import timber.log.Timber;
+import android.view.WindowMetrics;
 import androidx.appcompat.app.AppCompatActivity;
 import android.content.res.AssetManager;
 import android.os.Handler;
@@ -92,6 +96,10 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
         Timber.i("onCreate called");
         super.onCreate(savedInstanceState);
 
+        // Get and log screen resolution
+        Point resolution = getScreenResolution();
+        Timber.i("Screen Resolution: %d x %d", resolution.x, resolution.y);
+
         // Keep screen on to prevent screensaver/sleep
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
 
@@ -145,6 +153,21 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
 
     public void surfaceDestroyed(SurfaceHolder holder) {
         Timber.d("Surface destroyed");
+    }
+
+    @SuppressWarnings("deprecation")
+    private Point getScreenResolution() {
+        Point size = new Point();
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            WindowMetrics windowMetrics = getWindowManager().getMaximumWindowMetrics();
+            Rect bounds = windowMetrics.getBounds();
+            size.x = bounds.width();
+            size.y = bounds.height();
+        } else {
+            android.view.Display display = getWindowManager().getDefaultDisplay();
+            display.getRealSize(size);
+        }
+        return size;
     }
 
 }
