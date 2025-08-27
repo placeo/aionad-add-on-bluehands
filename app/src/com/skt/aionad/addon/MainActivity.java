@@ -111,7 +111,30 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
 
         // Set WebView background color programmatically
         WebView repair_status_webview = findViewById(R.id.car_repair_status_webview);
+        // Set WebView background to dark green
         repair_status_webview.setBackgroundColor(Color.parseColor("#006400"));
+
+        // Enable JavaScript (good practice) and create HTML for a 4x3 table
+        repair_status_webview.getSettings().setJavaScriptEnabled(true);
+        String tableHtml = "<html>" +
+                "<head>" +
+                "<style>" +
+                "html, body { height: 100%; margin: 0; padding: 0; background-color: transparent; color: black; }" +
+                "table { width: 100%; height: 100%; border-collapse: collapse; }" +
+                "td { border: 1px solid white; text-align: center; vertical-align: middle; }" +
+                "</style>" +
+                "</head>" +
+                "<body>" +
+                "<table>" +
+                "<tr><td>first</td><td>second</td><td>third</td><td>forth</td></tr>" +
+                "<tr><td>fifth</td><td>sixth</td><td>seventh</td><td>eighth</td></tr>" +
+                "<tr><td>ninth</td><td>tenth</td><td>eleven</td><td>twelve</td></tr>" +
+                "</table>" +
+                "</body>" +
+                "</html>";
+
+        // Load the HTML content into the WebView
+        repair_status_webview.loadDataWithBaseURL(null, tableHtml, "text/html", "UTF-8", null);
 
         // 화면 전환을 위한 View 참조 설정
         controlPanel = findViewById(R.id.control_panel);
