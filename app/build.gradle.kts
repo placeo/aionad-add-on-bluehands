@@ -5,11 +5,11 @@ plugins {
 }
 
 android {
-    namespace = "com.skt.aionadaddonbluehands"
+    namespace = "com.skt.aionad.addon"
     compileSdk = 34
 
     defaultConfig {
-        applicationId = "com.skt.aionadaddonbluehands"
+        applicationId = "com.skt.aionad.addon"
         minSdk = 22
         targetSdk = 22
         versionCode = 1

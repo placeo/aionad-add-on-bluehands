@@ -46,21 +46,12 @@ import java.nio.charset.StandardCharsets;
  */
 public class DemoApplication extends Application {
 
-    // Load native libraries
-    static {
-        System.loadLibrary("gstreamer_android");
-        System.loadLibrary("AionadAddOnBluehands");
-        com.skt.aionad.addon.MainActivity.nativeClassInit();
-    }
-
-    private static int sResolutionWidth = 1280;
-    private static int sResolutionHeight = 720;
-    private static volatile int sFps = 30;
+    private static int sResolutionWidth = 1920;
+    private static int sResolutionHeight = 1080;
     private static volatile boolean sFullScreenEnabled = false;
 
     public static int getGlobalResolutionWidth() { return sResolutionWidth; }
     public static int getGlobalResolutionHeight() { return sResolutionHeight; }
-    public static int getGlobalFps() { return sFps; }
     public static boolean isGlobalFullScreenEnabled() { return sFullScreenEnabled; }
 
     @Override
@@ -70,49 +61,13 @@ public class DemoApplication extends Application {
         Timber.plant(new ColorLogTree());
 
         copyAssetToFile("aionad-add-on.config");
-        initializeFpsFromConfig();
         initializeFullScreenFromConfig();
 
         Timber.i("Resolution width: %d, height: %d", sResolutionWidth, sResolutionHeight);
-        Timber.i("Configured FPS: %d", sFps);
         Timber.i("FullScreen enabled: %b", sFullScreenEnabled);
 
         Timber.i("[YKK_TEST] Codec Check");
         CodecCheck();
-    }
-
-    private void initializeFpsFromConfig() {
-        try {
-            File configFile = new File(getFilesDir(), "aionad-add-on.config");
-            if (!configFile.exists()) {
-                Timber.e("Config file not found, skipping fps initialization.");
-                return;
-            }
-
-            StringBuilder jsonBuilder = new StringBuilder();
-            try (InputStream is = new FileInputStream(configFile);
-                 BufferedReader reader = new BufferedReader(new InputStreamReader(is, StandardCharsets.UTF_8))) {
-                String line;
-                while ((line = reader.readLine()) != null) {
-                    int commentIndex = line.indexOf('#');
-                    if (commentIndex != -1) {
-                        line = line.substring(0, commentIndex);
-                    }
-                    jsonBuilder.append(line);
-                }
-            }
-
-            String json = jsonBuilder.toString();
-            if (json.trim().isEmpty()) {
-                Timber.w("Config file is empty or contains only comments. Using default FPS: %d", sFps);
-                return;
-            }
-
-            JSONObject config = new JSONObject(json);
-            sFps = config.optInt("fps", sFps);
-        } catch (Exception e) {
-            Timber.e(e, "Failed to initialize fps from config", e);
-        }
     }
 
     private void initializeFullScreenFromConfig() {
