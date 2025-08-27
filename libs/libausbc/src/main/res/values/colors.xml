@@ -1,9 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<resources>
-    <color name="colorDeepRed">#B22222</color>
-    <color name="colorRed">#FF0000</color>
-    <color name="colorWhite">#FFFFFF</color>
-    <color name="colorGray">#CDC5BF</color>
-
-    <color name="common_30_black">#4D000000</color>
-</resources>

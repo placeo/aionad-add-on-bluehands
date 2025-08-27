@@ -1,7 +1,5 @@
 package com.skt.photobox.server
 
-import com.jiangdg.ausbc.utils.bus.BusKey
-import com.jiangdg.ausbc.utils.bus.EventBus
 import io.ktor.serialization.kotlinx.json.*
 import io.ktor.server.application.*
 import io.ktor.server.cio.*
@@ -13,10 +11,11 @@ import io.ktor.server.routing.*
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 
-// Helper function outside the Ktor DSL scope to avoid ambiguity and type issues.
-private fun sendCaptureCommand() {
-    EventBus.with<Unit>(BusKey.KEY_CAPTURE_IMAGE).postMessage(Unit)
-}
+// TODO: Implement a new communication mechanism (e.g., using LiveData, BroadcastReceiver, or a shared ViewModel)
+// to interact with the rest of the application.
+// private fun sendCaptureCommand() {
+//     EventBus.with<Unit>(BusKey.KEY_CAPTURE_IMAGE).postMessage(Unit)
+// }
 
 @Serializable
 data class TickerRequest(val text: String)
@@ -57,13 +56,15 @@ fun Application.module() {
         }
 
         post("/camera/capture") {
-            sendCaptureCommand() // Call the helper function
+            // TODO: Implement camera capture logic
+            // sendCaptureCommand()
             call.respond(mapOf("result" to "capture command sent"))
         }
 
         post("/ticker") {
             val request = call.receive<TickerRequest>()
-            EventBus.with<String>(BusKey.KEY_UPDATE_TICKER_TEXT).postMessage(request.text)
+            // TODO: Implement ticker update logic
+            // EventBus.with<String>(BusKey.KEY_UPDATE_TICKER_TEXT).postMessage(request.text)
             call.respond(mapOf("status" to "ok", "text" to request.text))
         }
     }

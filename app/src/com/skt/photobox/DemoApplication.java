@@ -27,7 +27,6 @@ import android.media.MediaCodecList;
 import android.media.MediaCodecInfo;
 
 import com.skt.photobox.utils.ColorLogTree;
-import com.skt.photobox.utils.JniLoggingTree;
 
 import org.json.JSONObject;
 
@@ -47,17 +46,6 @@ import java.nio.charset.StandardCharsets;
  */
 public class DemoApplication extends Application {
 
-    // Load native library
-    static {
-        System.loadLibrary("PhotoBox");
-    }
-
-    // Native methods for configuration
-    private native void nativeInitConfiguration(String configPath, String frontendLogPath, String photoBoxLogPath, String gstreamerLogPath);
-    private native void nativeReleaseConfiguration();
-    public native int getResolutionWidth();
-    public native int getResolutionHeight();
-
     private static int sResolutionWidth = 1280;
     private static int sResolutionHeight = 720;
     private static volatile int sFps = 30;
@@ -71,97 +59,19 @@ public class DemoApplication extends Application {
     @Override
     public void onCreate() {
         super.onCreate();
-        // UVCManager.getInstance().init(this);
 
         Timber.plant(new ColorLogTree());
 
         copyAssetToFile("photo-box.config");
-        initializeFileLoggerFromConfig();
         initializeFpsFromConfig();
         initializeFullScreenFromConfig();
 
-        String configPath = new File(getFilesDir(), "photo-box.config").getAbsolutePath();
-
-        // Create log directory if it doesn't exist
-        File frontendLogDir = new File(getFilesDir(), "log/frontend");
-        if (!frontendLogDir.exists()) {
-            frontendLogDir.mkdirs();
-        }
-        File frontendLogFile = new File(frontendLogDir, "frontend-jni.log");
-        String frontendLogPath = frontendLogFile.getAbsolutePath();
-
-        File photoBoxLogDir = new File(getFilesDir(), "log/photo-box");
-        if (!photoBoxLogDir.exists()) {
-            photoBoxLogDir.mkdirs();
-        }
-        File photoBoxLogFile = new File(photoBoxLogDir, "photo-box-jni.log");
-        String photoBoxLogPath = photoBoxLogFile.getAbsolutePath();
-
-        File gstreamerLogDir = new File(getFilesDir(), "log/gstreamer");
-        if (!gstreamerLogDir.exists()) {
-            gstreamerLogDir.mkdirs();
-        }
-        File gstreamerLogFile = new File(gstreamerLogDir, "gstreamer-jni.log");
-        String gstreamerLogPath = gstreamerLogFile.getAbsolutePath();
-
-        nativeInitConfiguration(configPath, frontendLogPath, photoBoxLogPath, gstreamerLogPath);
-
-        sResolutionWidth = getResolutionWidth();
-        sResolutionHeight = getResolutionHeight();
         Timber.i("Resolution width: %d, height: %d", sResolutionWidth, sResolutionHeight);
         Timber.i("Configured FPS: %d", sFps);
         Timber.i("FullScreen enabled: %b", sFullScreenEnabled);
 
         Timber.i("[YKK_TEST] Codec Check");
         CodecCheck();
-    }
-
-    private void initializeFileLoggerFromConfig() {
-        try {
-            File configFile = new File(getFilesDir(), "photo-box.config");
-            if (!configFile.exists()) {
-                Timber.e("Config file not found, skipping file logger initialization.");
-                return;
-            }
-
-            StringBuilder jsonBuilder = new StringBuilder();
-            try (InputStream is = new FileInputStream(configFile);
-                 BufferedReader reader = new BufferedReader(new InputStreamReader(is, StandardCharsets.UTF_8))) {
-                String line;
-                while ((line = reader.readLine()) != null) {
-                    int commentIndex = line.indexOf('#');
-                    if (commentIndex != -1) {
-                        line = line.substring(0, commentIndex);
-                    }
-                    jsonBuilder.append(line);
-                }
-            }
-
-            String json = jsonBuilder.toString();
-
-            Timber.i("json: %s", json);
-            
-            // An empty file can result in an empty string, which is not valid JSON.
-            if (json.trim().isEmpty()) {
-                Timber.w("Config file is empty or contains only comments.");
-                return;
-            }
-            JSONObject config = new JSONObject(json);
-
-            if (config.has("log")) {
-                JSONObject logConfig = config.getJSONObject("log");
-                String logType = logConfig.optString("type", "console");
-
-                if ("file".equalsIgnoreCase(logType)) {
-                    Timber.plant(new JniLoggingTree());
-                    Timber.i("File logging via JNI is enabled.");
-                } else {
-                    Timber.i("Console-only logging is enabled.");
-                }
-            }
-        } catch (Exception e) {
-            Timber.e(e, "Failed to initialize logger from config", e);
-        }
     }
 
     private void initializeFpsFromConfig() {
@@ -233,14 +143,6 @@ public class DemoApplication extends Application {
         } catch (Exception e) {
             Timber.e(e, "Failed to initialize fullScreen from config", e);
         }
-    }
-
-    @Override
-    public void onTerminate() {
-        super.onTerminate();
-        // Release JNI file logger
-        nativeReleaseConfiguration();
-        Timber.i("JNI file logger released.");
     }
 
     private void copyAssetToFile(String filename) {

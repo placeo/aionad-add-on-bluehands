@@ -15,19 +15,6 @@ android {
         versionCode = 1
         versionName = "0.1"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-        ndk {
-            abiFilters += listOf("armeabi-v7a", "arm64-v8a")
-        }
-        externalNativeBuild {
-            cmake {
-                val gstRoot = project.findProperty("GSTREAMER_ROOT_ANDROID")?.toString()
-                    ?: System.getenv("GSTREAMER_ROOT_ANDROID")
-                    ?: "${System.getProperty("user.home")}/Work/Programming/Workspace/Storage/gstreamer-android-1.26.0"
-                println("Using GSTREAMER_ROOT_ANDROID: $gstRoot")
-                arguments += listOf("-DANDROID_STL=c++_shared", "-DGSTREAMER_ROOT_ANDROID=$gstRoot", "-GNinja")
-                targets += "PhotoBox"
-            }
-        }
     }
 
     signingConfigs {
@@ -67,40 +54,32 @@ android {
 
     sourceSets {
         getByName("main") {
-            val gstRoot = project.findProperty("GSTREAMER_ROOT_ANDROID")?.toString()
-                ?: System.getenv("GSTREAMER_ROOT_ANDROID")
-                ?: "${System.getProperty("user.home")}/Work/Programming/Workspace/Storage/gstreamer-android-1.26.0"
             manifest.srcFile("AndroidManifest.xml")
-            java.srcDirs("src", "../libs/libausbc/src/main/java", "$gstRoot/share/gst-android/java")
-            res.srcDirs("res", "../libs/libausbc/src/main/res")
+            java.srcDirs("src")
+            res.srcDirs("res")
             assets.srcDirs("src/assets", "../conf")
-            jni.srcDirs("src/main/jni", "../libs/libausbc/src/main/jni")
         }
     }
 
     packagingOptions {
-        pickFirst("**/libgstreamer_android.so")
-        pickFirst("**/lib/armeabi-v7a/libgstreamer_android.so")
-        pickFirst("**/lib/arm64-v8a/libgstreamer_android.so")
         exclude("META-INF/INDEX.LIST")
-    }
-
-    externalNativeBuild {
-        cmake {
-            path = file("jni/CMakeLists.txt")
-            version = "3.22.1"
-        }
     }
 
     lint {
         abortOnError = false
     }
-
-    ndkVersion = "25.2.9519653"
+    
+    // The following blocks are removed to disable native builds.
+    // externalNativeBuild {
+    //     cmake {
+    //         path = file("jni/CMakeLists.txt")
+    //         version = "3.22.1"
+    //     }
+    // }
+    // ndkVersion = "25.2.9519653"
 }
 
 dependencies {
-    implementation(fileTree(mapOf("dir" to "libs", "include" to listOf("*.jar"))))
     testImplementation("junit:junit:4.13.2")
     implementation("androidx.appcompat:appcompat:1.6.1")
     implementation("androidx.activity:activity:1.8.0")
@@ -116,11 +95,7 @@ dependencies {
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.8.0")
     implementation("androidx.lifecycle:lifecycle-viewmodel-ktx:2.8.0")
     implementation("androidx.lifecycle:lifecycle-livedata-ktx:2.8.0")
-    implementation("com.jakewharton.timber:timber:5.0.1")
-    // libausbc 의존성
-    implementation("com.google.android.material:material:1.11.0")
-    implementation("androidx.constraintlayout:constraintlayout:2.1.4")
-    implementation("com.jakewharton.timber:timber:5.0.1")
+    implementation("com.google.android.material:material:1.12.0")
 
     // Ktor
     val ktor_version = "2.3.12"

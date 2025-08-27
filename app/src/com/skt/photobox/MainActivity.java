@@ -18,20 +18,6 @@ import android.widget.Toast;
 import android.webkit.WebView;
 import android.graphics.Color;
 import android.view.MotionEvent;
-import android.view.View;
-
-import androidx.fragment.app.Fragment;
-
-import androidx.core.content.PermissionChecker;
-import org.freedesktop.gstreamer.GStreamer;
-
-import android.content.pm.PackageManager;
-import androidx.core.content.ContextCompat;
-
-import com.jiangdg.ausbc.utils.Utils;
-import com.jiangdg.ausbc.utils.bus.BusKey;
-import com.jiangdg.ausbc.utils.bus.EventBus;
-
 import android.content.Context;
 import android.content.Intent;
 import com.skt.photobox.server.KtorServerService;
@@ -55,6 +41,7 @@ import java.io.OutputStream;
 
 public class MainActivity extends AppCompatActivity implements SurfaceHolder.Callback {
     private static final int CAMERA_PERMISSION_REQUEST_CODE = 1001;
+    private static final long FULLSCREEN_TOGGLE_DELAY_MS = 10000;
 
     private SurfaceHolder surfaceHolder;
     private PowerManager.WakeLock mWakeLock;  // WakeLock 변수 선언
@@ -66,30 +53,23 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
     private boolean isTimerRunning = false;
     private View controlPanel;
     private View videoContainer;
-    private native void nativeInit();     // Initialize native code, build pipeline, etc
-    private native void nativeFinalize(); // Destroy pipeline and shutdown native code
-    private native void nativePlay();     // Set pipeline to PLAYING
-    private native void nativePause();    // Set pipeline to PAUSED
-    private static native boolean nativeClassInit(); // Initialize native class: cache Method IDs for callbacks
-    private native void nativeSurfaceInit(Object surface);
-    private native void nativeSurfaceFinalize();
-    
-
-    private long native_custom_data;      // Native code will use this to keep private data
-
-    private boolean is_playing_desired;   // Whether the user asked to go to PLAYING
 
     @Override
     protected void onStart() {
         super.onStart();
-        mWakeLock = Utils.INSTANCE.wakeLock(this);
+        PowerManager pm = (PowerManager) getSystemService(Context.POWER_SERVICE);
+        if (pm != null) {
+            mWakeLock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "PhotoBox::WakeLock");
+            mWakeLock.acquire();
+        }
     }
 
     @Override
     protected void onStop() {
         super.onStop();
-        if (mWakeLock != null) {
-            Utils.INSTANCE.wakeUnLock(mWakeLock);
+        if (mWakeLock != null && mWakeLock.isHeld()) {
+            mWakeLock.release();
+            mWakeLock = null;
         }
     }
     
@@ -119,20 +99,11 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
     @Override
     public void onCreate(Bundle savedInstanceState)
     {
-        Timber.i("%s, %s called", new Throwable().getStackTrace()[0].getClassName(), new Throwable().getStackTrace()[0].getMethodName());
+        Timber.i("onCreate called");
         super.onCreate(savedInstanceState);
 
         // Keep screen on to prevent screensaver/sleep
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
-
-        // Initialize GStreamer and warn if it fails
-        try {
-            GStreamer.init(this);
-        } catch (Exception e) {
-            Toast.makeText(this, e.getMessage(), Toast.LENGTH_LONG).show();
-            finish();
-            return;
-        }
 
         setContentView(R.layout.main);
 
@@ -144,86 +115,18 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
         logoOverlayWebView.getSettings().setJavaScriptEnabled(true);
         logoOverlayWebView.setBackgroundColor(Color.TRANSPARENT);
 
-        String logoHtmlData = "<html><head>"
-                + "<meta name='viewport' content='width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no' />"
-                + "<style>"
-                + "body { margin: 0; overflow: hidden; background-color: transparent; }"
-                + ".ticker-container { width: 100%; height: 100%; display: flex; align-items: center; overflow: hidden; }"
-                + ".ticker-track { display: flex; flex-shrink: 0; white-space: nowrap; animation: continuous-ticker 40s linear infinite; }"
-                + "img { margin: 0 15px; /* 이미지 사이 간격 */ }"
-                + "@keyframes continuous-ticker { from { transform: translateX(0); } to { transform: translateX(-50%); } }"
-                + "</style></head><body>"
-                + "<div class='ticker-container'>"
-                + "<div class='ticker-track'>"
-                // 그룹 1
-                + "<img src='file:///android_res/mipmap/oliveyoung_small_logo.png' />"
-                + "<img src='file:///android_res/mipmap/oliveyoung_small_logo.png' />"
-                + "<img src='file:///android_res/mipmap/oliveyoung_small_logo.png' />"
-                + "<img src='file:///android_res/mipmap/oliveyoung_small_logo.png' />"
-                + "<img src='file:///android_res/mipmap/oliveyoung_small_logo.png' />"
-                + "<img src='file:///android_res/mipmap/oliveyoung_small_logo.png' />"
-                + "<img src='file:///android_res/mipmap/oliveyoung_small_logo.png' />"
-                + "<img src='file:///android_res/mipmap/oliveyoung_small_logo.png' />"
-                + "<img src='file:///android_res/mipmap/oliveyoung_small_logo.png' />"
-                + "<img src='file:///android_res/mipmap/oliveyoung_small_logo.png' />"
-                // 그룹 2 (끊김 없는 애니메이션을 위해)
-                + "<img src='file:///android_res/mipmap/oliveyoung_small_logo.png' />"
-                + "<img src='file:///android_res/mipmap/oliveyoung_small_logo.png' />"
-                + "<img src='file:///android_res/mipmap/oliveyoung_small_logo.png' />"
-                + "<img src='file:///android_res/mipmap/oliveyoung_small_logo.png' />"
-                + "<img src='file:///android_res/mipmap/oliveyoung_small_logo.png' />"
-                + "<img src='file:///android_res/mipmap/oliveyoung_small_logo.png' />"
-                + "<img src='file:///android_res/mipmap/oliveyoung_small_logo.png' />"
-                + "<img src='file:///android_res/mipmap/oliveyoung_small_logo.png' />"
-                + "<img src='file:///android_res/mipmap/oliveyoung_small_logo.png' />"
-                + "<img src='file:///android_res/mipmap/oliveyoung_small_logo.png' />"
-                + "</div>"
-                + "</div></body></html>";
-        logoOverlayWebView.loadDataWithBaseURL("file:///android_res/", logoHtmlData, "text/html", "UTF-8", null);
+        // HTML을 asset 파일에서 로드하여 유지보수성 향상
+        logoOverlayWebView.loadUrl("file:///android_asset/logo_ticker.html");
         logoOverlayWebView.setVisibility(View.VISIBLE);
-/* 
-        ImageButton play = (ImageButton) this.findViewById(R.id.button_play);
-        play.setOnClickListener(new OnClickListener() {
-            public void onClick(View v) {
-                is_playing_desired = true;
-                nativePlay();
-            }
-        });
-
-        ImageButton pause = (ImageButton) this.findViewById(R.id.button_stop);
-        pause.setOnClickListener(new OnClickListener() {
-            public void onClick(View v) {
-                is_playing_desired = false;
-                nativePause();
-            }
-        });
-*/
         SurfaceView sv = (SurfaceView) this.findViewById(R.id.surface_video);
         SurfaceHolder sh = sv.getHolder();
         this.surfaceHolder = sh; // SurfaceHolder 저장
         sh.addCallback(this);
 
-        if (savedInstanceState != null) {
-            is_playing_desired = savedInstanceState.getBoolean("playing");
-            Timber.i("Activity created. Saved state is playing: %b", is_playing_desired);
-        } else {
-            is_playing_desired = false;
-            Timber.i("Activity created. There is no saved state, playing: false");
-        }
-
-        // Start with disabled buttons, until native code is initialized
-        //this.findViewById(R.id.button_play).setEnabled(false);
-        //this.findViewById(R.id.button_stop).setEnabled(false);
-
         // Start Ktor Server Service
         Intent serverIntent = new Intent(this, KtorServerService.class);
         startService(serverIntent);
 
-        nativeInit();
-
-        int usbDeviceId = getIntent().getIntExtra(KEY_USB_DEVICE, -1);
-        replaceDemoFragment(DemoFragment.newInstance(usbDeviceId));
-        
         // 화면 전환을 위한 View 참조 설정
         controlPanel = findViewById(R.id.control_panel);
         videoContainer = findViewById(R.id.video_container);
@@ -231,36 +134,12 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
         // 10초 간격으로 화면 전환하는 타이머 시작
         startToggleTimer();
         
-        Timber.i("%s, %s end", new Throwable().getStackTrace()[0].getClassName(), new Throwable().getStackTrace()[0].getMethodName());
-    }
-
-    private void replaceDemoFragment(Fragment fragment) {
-        int hasCameraPermission = PermissionChecker.checkSelfPermission(this, Manifest.permission.CAMERA);
-        int hasStoragePermission = PermissionChecker.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE);
-
-        if (hasCameraPermission != PermissionChecker.PERMISSION_GRANTED || hasStoragePermission != PermissionChecker.PERMISSION_GRANTED) {
-            if (ActivityCompat.shouldShowRequestPermissionRationale(this, Manifest.permission.CAMERA)) {
-                Toast.makeText(this, R.string.permission_tip, Toast.LENGTH_LONG).show();
-            }
-            ActivityCompat.requestPermissions(
-                this,
-                new String[]{Manifest.permission.CAMERA, Manifest.permission.WRITE_EXTERNAL_STORAGE, Manifest.permission.RECORD_AUDIO},
-                REQUEST_CAMERA
-            );
-            return;
-        }
-
-        getSupportFragmentManager()
-                .beginTransaction()
-                .replace(R.id.fragment_container, fragment)
-                .commitAllowingStateLoss();
+        Timber.i("onCreate end");
     }
 
     @Override
     protected void onSaveInstanceState(Bundle outState) {
         super.onSaveInstanceState(outState);
-        outState.putBoolean("playing", is_playing_desired);
-        Timber.d("Saving state, playing: %b", is_playing_desired);
     }
 
     @Override
@@ -272,7 +151,6 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
         // 타이머 정리
         stopToggleTimer();
 
-        nativeFinalize();
         super.onDestroy();
     }
     
@@ -298,12 +176,12 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
                 toggleScreenMode();
                 // 10초 후에 다시 실행
                 if (isTimerRunning && toggleHandler != null) {
-                    toggleHandler.postDelayed(this, 10000);
+                    toggleHandler.postDelayed(this, FULLSCREEN_TOGGLE_DELAY_MS);
                 }
             }
         };
         // 처음 10초 후에 시작
-        toggleHandler.postDelayed(toggleRunnable, 10000);
+        toggleHandler.postDelayed(toggleRunnable, FULLSCREEN_TOGGLE_DELAY_MS);
         isTimerRunning = true;
         Timber.d("Timer started - first toggle in 10 seconds");
     }
@@ -403,46 +281,9 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
         */
     }
 
-    // Called from native code. Native code calls this once it has created its pipeline and
-    // the main loop is running, so it is ready to accept commands.
-    private void onGStreamerInitialized () {
-        // You can get sinkElement source here when needed.
-        Timber.i("Gst initialized. Restoring state, playing: %b", is_playing_desired);
-        
-
-        
-        // Restore playing state
-        if (is_playing_desired) {
-            nativePlay();
-        } else {
-            // YKK_TEST
-            // nativePause();
-            nativePlay();
-        }
-
-        // Re-enable buttons, now that GStreamer is initialized
-/* 
-        final Activity activity = this;
-        runOnUiThread(new Runnable() {
-            public void run() {
-                activity.findViewById(R.id.button_play).setEnabled(true);
-                activity.findViewById(R.id.button_stop).setEnabled(true);
-            }
-        });
-*/
-    }
-
-
-    static {
-        System.loadLibrary("gstreamer_android");
-        System.loadLibrary("PhotoBox");
-        nativeClassInit();
-    }
-
     public void surfaceChanged(SurfaceHolder holder, int format, int width,
             int height) {
         Timber.d("Surface changed to format %d, width: %d, height: %d", format, width, height);
-        nativeSurfaceInit (holder.getSurface());
     }
 
     public void surfaceCreated(SurfaceHolder holder) {
@@ -451,15 +292,6 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
 
     public void surfaceDestroyed(SurfaceHolder holder) {
         Timber.d("Surface destroyed");
-        nativeSurfaceFinalize ();
     }
 
-    public static Intent newInstance(Context context, int usbDeviceId) {
-        Intent intent = new Intent(context, MainActivity.class);
-        intent.putExtra(KEY_USB_DEVICE, usbDeviceId);
-        return intent;
-    }
-    private static final int REQUEST_CAMERA = 0;
-    private static final int REQUEST_STORAGE = 1;
-    public static final String KEY_USB_DEVICE = "usbDeviceId";
 }
