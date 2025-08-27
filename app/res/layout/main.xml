@@ -10,18 +10,19 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:padding="8dp">
+        android:padding="0dp">
 
         <FrameLayout
             android:layout_width="match_parent"
-            android:layout_height="80dp">
+            android:layout_height="30dp"
+            android:background="#BAC6DE">
             <ImageView
                 android:id="@+id/imageview_logo"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:src="@mipmap/oliveyoung_large_logo"
+                android:src="@mipmap/bluehands_logo_pc"
                 android:contentDescription="@string/logo_description"
-                android:layout_gravity="center" />
+                android:layout_gravity="left" />
         </FrameLayout>
     </LinearLayout>
     <androidx.constraintlayout.widget.Guideline
