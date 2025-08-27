@@ -65,9 +65,6 @@ public class DemoApplication extends Application {
 
         Timber.i("Resolution width: %d, height: %d", sResolutionWidth, sResolutionHeight);
         Timber.i("FullScreen enabled: %b", sFullScreenEnabled);
-
-        Timber.i("[YKK_TEST] Codec Check");
-        CodecCheck();
     }
 
     private void initializeFullScreenFromConfig() {
@@ -122,37 +119,5 @@ public class DemoApplication extends Application {
             e.printStackTrace(); // Log error
         }
         Timber.i("%s conf is copied to %s", filename, outFile.getAbsolutePath());
-    }
-
-    private void CodecCheck() {
-        MediaCodecList codecList = new MediaCodecList(MediaCodecList.ALL_CODECS);
-        for (MediaCodecInfo codecInfo : codecList.getCodecInfos()) {
-            String name = codecInfo.getName().toLowerCase();
-            // Heuristic check for decoders, as isDecoder() might cause issues.
-            if (!name.contains("decoder") && !name.contains("dec")) {
-                continue;
-            }
-
-            String[] types = codecInfo.getSupportedTypes();
-            for (String type : types) {
-                if (type.startsWith("video/")) {
-                    boolean isHardware = false;
-                    if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
-                        isHardware = codecInfo.isHardwareAccelerated();
-                    } else {
-                        // Heuristic for older APIs
-                        if (name.contains("omx.") && !name.contains(".sw.")) {
-                            isHardware = true;
-                        }
-                    }
-
-                    if (isHardware) {
-                        Timber.i("Found HW video decoder: %s for type %s", codecInfo.getName(), type);
-                    } else {
-                        Timber.i("Found SW video decoder: %s for type %s", codecInfo.getName(), type);
-                    }
-                }
-            }
-        }
     }
 }
