@@ -109,6 +109,10 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
         Intent serverIntent = new Intent(this, KtorServerService.class);
         startService(serverIntent);
 
+        // Set WebView background color programmatically
+        WebView repair_status_webview = findViewById(R.id.car_repair_status_webview);
+        repair_status_webview.setBackgroundColor(Color.parseColor("#006400"));
+
         // 화면 전환을 위한 View 참조 설정
         controlPanel = findViewById(R.id.control_panel);
         
