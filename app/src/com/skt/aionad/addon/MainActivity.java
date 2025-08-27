@@ -1,4 +1,4 @@
-package com.skt.photobox;
+package com.skt.aionad.addon;
 
 import android.Manifest;
 import android.app.Activity;
@@ -20,7 +20,7 @@ import android.graphics.Color;
 import android.view.MotionEvent;
 import android.content.Context;
 import android.content.Intent;
-import com.skt.photobox.server.KtorServerService;
+import com.skt.aionad.addon.server.KtorServerService;
 import timber.log.Timber;
 import androidx.appcompat.app.AppCompatActivity;
 import android.content.res.AssetManager;
@@ -54,12 +54,14 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
     private View controlPanel;
     private View videoContainer;
 
+    private boolean is_playing_desired;   // Whether the user asked to go to PLAYING
+
     @Override
     protected void onStart() {
         super.onStart();
         PowerManager pm = (PowerManager) getSystemService(Context.POWER_SERVICE);
         if (pm != null) {
-            mWakeLock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "PhotoBox::WakeLock");
+            mWakeLock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "AIOnAdAddOn::WakeLock");
             mWakeLock.acquire();
         }
     }
@@ -123,6 +125,14 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
         this.surfaceHolder = sh; // SurfaceHolder 저장
         sh.addCallback(this);
 
+        if (savedInstanceState != null) {
+            is_playing_desired = savedInstanceState.getBoolean("playing");
+            Timber.i("Activity created. Saved state is playing: %b", is_playing_desired);
+        } else {
+            is_playing_desired = false;
+            Timber.i("Activity created. There is no saved state, playing: false");
+        }
+
         // Start Ktor Server Service
         Intent serverIntent = new Intent(this, KtorServerService.class);
         startService(serverIntent);
@@ -140,6 +150,8 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
     @Override
     protected void onSaveInstanceState(Bundle outState) {
         super.onSaveInstanceState(outState);
+        outState.putBoolean("playing", is_playing_desired);
+        Timber.d("Saving state, playing: %b", is_playing_desired);
     }
 
     @Override

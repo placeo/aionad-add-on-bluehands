@@ -1,1 +1,1 @@
-adb shell am start -n com.skt.photobox/com.vsh.activity.DevicesActivity
+adb shell am start -n com.skt.aionad.addon/MainActivity

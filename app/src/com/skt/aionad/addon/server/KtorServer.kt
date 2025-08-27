@@ -1,4 +1,4 @@
-package com.skt.photobox.server
+package com.skt.aionad.addon.server
 
 import io.ktor.serialization.kotlinx.json.*
 import io.ktor.server.application.*
@@ -48,7 +48,7 @@ fun Application.module() {
 
     routing {
         get("/") {
-            call.respondText("Hello, PhotoBox!")
+            call.respondText("Hello, aionad-add-on-bluehands!")
         }
 
         get("/status") {

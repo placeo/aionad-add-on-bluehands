@@ -1,4 +1,4 @@
-package com.skt.photobox.utils;
+package com.skt.aionad.addon.utils;
 
 import android.util.Log;
 import org.jetbrains.annotations.NotNull;

@@ -33,7 +33,7 @@
 # Keep rules for Ktor and our Server code
 # Keep class and member names from being obfuscated.
 -keep class io.ktor.** { *; }
--keep class com.skt.photobox.server.** { *; }
+-keep class com.skt.aionad.addon.server.** { *; }
 
 # Keep rules for Logback (example, may need more)
 -keep class ch.qos.logback.** { *; }
@@ -50,7 +50,7 @@
 -keep class kotlinx.serialization.** { *; }
 
 # Keep MainActivity and its native methods/fields for JNI
--keep class com.skt.photobox.MainActivity {
+-keep class com.skt.aionad.addon.MainActivity {
     private long native_custom_data;
     private void setMessage(java.lang.String);
     private void onGStreamerInitialized();

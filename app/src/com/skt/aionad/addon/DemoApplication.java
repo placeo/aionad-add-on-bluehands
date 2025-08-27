@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.skt.photobox;
+package com.skt.aionad.addon;
 
 import android.app.Application;
 import timber.log.Timber;
@@ -26,7 +26,7 @@ import androidx.annotation.NonNull;
 import android.media.MediaCodecList;
 import android.media.MediaCodecInfo;
 
-import com.skt.photobox.utils.ColorLogTree;
+import com.skt.aionad.addon.utils.ColorLogTree;
 
 import org.json.JSONObject;
 
@@ -46,6 +46,13 @@ import java.nio.charset.StandardCharsets;
  */
 public class DemoApplication extends Application {
 
+    // Load native libraries
+    static {
+        System.loadLibrary("gstreamer_android");
+        System.loadLibrary("AionadAddOnBluehands");
+        com.skt.aionad.addon.MainActivity.nativeClassInit();
+    }
+
     private static int sResolutionWidth = 1280;
     private static int sResolutionHeight = 720;
     private static volatile int sFps = 30;
@@ -62,7 +69,7 @@ public class DemoApplication extends Application {
 
         Timber.plant(new ColorLogTree());
 
-        copyAssetToFile("photo-box.config");
+        copyAssetToFile("aionad-add-on.config");
         initializeFpsFromConfig();
         initializeFullScreenFromConfig();
 
@@ -76,7 +83,7 @@ public class DemoApplication extends Application {
 
     private void initializeFpsFromConfig() {
         try {
-            File configFile = new File(getFilesDir(), "photo-box.config");
+            File configFile = new File(getFilesDir(), "aionad-add-on.config");
             if (!configFile.exists()) {
                 Timber.e("Config file not found, skipping fps initialization.");
                 return;
@@ -110,7 +117,7 @@ public class DemoApplication extends Application {
 
     private void initializeFullScreenFromConfig() {
         try {
-            File configFile = new File(getFilesDir(), "photo-box.config");
+            File configFile = new File(getFilesDir(), "aionad-add-on.config");
             if (!configFile.exists()) {
                 Timber.e("Config file not found, skipping fullScreen initialization.");
                 return;

@@ -5,11 +5,11 @@ plugins {
 }
 
 android {
-    namespace = "com.skt.photobox"
+    namespace = "com.skt.aionadaddonbluehands"
     compileSdk = 34
 
     defaultConfig {
-        applicationId = "com.skt.photobox"
+        applicationId = "com.skt.aionadaddonbluehands"
         minSdk = 22
         targetSdk = 22
         versionCode = 1
@@ -68,15 +68,6 @@ android {
     lint {
         abortOnError = false
     }
-    
-    // The following blocks are removed to disable native builds.
-    // externalNativeBuild {
-    //     cmake {
-    //         path = file("jni/CMakeLists.txt")
-    //         version = "3.22.1"
-    //     }
-    // }
-    // ndkVersion = "25.2.9519653"
 }
 
 dependencies {

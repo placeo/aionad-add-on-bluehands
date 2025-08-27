@@ -1,4 +1,4 @@
-package com.skt.photobox.server
+package com.skt.aionad.addon.server
 
 import android.app.Service
 import android.content.Intent

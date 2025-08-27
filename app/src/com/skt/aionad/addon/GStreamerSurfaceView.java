@@ -1,4 +1,4 @@
-package com.skt.photobox;
+package com.skt.aionad.addon;
 
 import android.content.Context;
 import android.util.AttributeSet;

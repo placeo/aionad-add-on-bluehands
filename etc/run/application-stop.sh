@@ -1,1 +1,1 @@
-adb shell am force-stop com.skt.photobox
+adb shell am force-stop com.skt.aionad.addon
