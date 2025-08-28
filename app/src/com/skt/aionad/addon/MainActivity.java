@@ -63,15 +63,16 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
 
     private WebView repairStatusWebView;
 
-    private ArrayList<CarRepairInfo> carRepairInfoList = new ArrayList<>();
+    private ArrayList<CarRepairInfo> carRepairInfoDisplayList = new ArrayList<>();
 
     private final Handler oneShotHandler = new Handler(Looper.getMainLooper());
     private final Runnable oneShotTask = new Runnable() {
         @Override public void run() {
             Timber.i("one-shot timer fired");
+            carRepairInfoDisplayList.clear();
             addCarRepairInfoForTest();
 
-            for (CarRepairInfo carRepairInfo : carRepairInfoList) {
+            for (CarRepairInfo carRepairInfo : carRepairInfoDisplayList) {
                 Timber.i("RepairStatus: %s, LicensePlateNumber: %s, CarModel: %s, EstimatedFinishTimeMinutes: %s",
                     carRepairInfo.getRepairStatus(),
                     carRepairInfo.getLicensePlateNumber(),
@@ -87,7 +88,7 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
     };
 
     private void updateRepairStatusWebView() {
-        if (repairStatusWebView == null || carRepairInfoList.isEmpty()) {
+        if (repairStatusWebView == null || carRepairInfoDisplayList.isEmpty()) {
             return;
         }
 
@@ -96,28 +97,39 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
         jsBuilder.append("if(r.length>=3){");
 
         // 최대 4개의 컬럼까지 처리 (현재 HTML 테이블 구조에 맞춤)
-        int maxColumns = Math.min(carRepairInfoList.size(), 4);
+        int maxColumns = Math.min(carRepairInfoDisplayList.size(), 4);
         
-        for (int i = 0; i < maxColumns; i++) {
-            CarRepairInfo carInfo = carRepairInfoList.get(i);
-            
-            // 상태에 따른 CSS 클래스 결정
-            String statusClass = getStatusClass(carInfo.getRepairStatus());
-            String statusText = getStatusText(carInfo.getRepairStatus());
-            
-            // 헤더 업데이트 (첫 번째 행)
-            jsBuilder.append(String.format("var h%d=r[0].cells[%d]; h%d.textContent='%s'; h%d.className='h %s';", 
-                    i, i, i, statusText, i, statusClass));
-            
-            // 차량 정보 업데이트 (두 번째 행)
-            String plateAndModel = carInfo.getLicensePlateNumber() + " " + carInfo.getCarModel();
-            jsBuilder.append(String.format("var p%d=r[1].cells[%d]; p%d.textContent='%s'; p%d.className='plate';", 
-                    i, i, i, plateAndModel, i));
-            
-            // 상태 정보 업데이트 (세 번째 행)
-            String statusInfo = getStatusInfoText(carInfo);
-            jsBuilder.append(String.format("var s%d=r[2].cells[%d]; s%d.innerHTML='%s'; s%d.className='status';", 
-                    i, i, i, statusInfo, i));
+        for (int i = 0; i < 4; i++) { // 항상 4개 열을 모두 처리
+            if (i < carRepairInfoDisplayList.size()) {
+                // 데이터가 있는 경우
+                CarRepairInfo carInfo = carRepairInfoDisplayList.get(i);
+                
+                // 상태에 따른 CSS 클래스 결정
+                String statusClass = getStatusClass(carInfo.getRepairStatus());
+                String statusText = getStatusText(carInfo.getRepairStatus());
+                
+                // 헤더 업데이트 (첫 번째 행)
+                jsBuilder.append(String.format("var h%d=r[0].cells[%d]; h%d.textContent='%s'; h%d.className='h %s';", 
+                        i, i, i, statusText, i, statusClass));
+                
+                // 차량 정보 업데이트 (두 번째 행)
+                String plateAndModel = carInfo.getLicensePlateNumber() + " " + carInfo.getCarModel();
+                jsBuilder.append(String.format("var p%d=r[1].cells[%d]; p%d.textContent='%s'; p%d.className='plate';", 
+                        i, i, i, plateAndModel, i));
+                
+                // 상태 정보 업데이트 (세 번째 행)
+                String statusInfo = getStatusInfoText(carInfo);
+                jsBuilder.append(String.format("var s%d=r[2].cells[%d]; s%d.innerHTML='%s'; s%d.className='status';", 
+                        i, i, i, statusInfo, i));
+            } else {
+                // 데이터가 없는 경우 - 빈 열로 설정
+                jsBuilder.append(String.format("var h%d=r[0].cells[%d]; h%d.textContent=''; h%d.className='h empty';", 
+                        i, i, i, i));
+                jsBuilder.append(String.format("var p%d=r[1].cells[%d]; p%d.textContent=''; p%d.className='empty';", 
+                        i, i, i, i));
+                jsBuilder.append(String.format("var s%d=r[2].cells[%d]; s%d.innerHTML=''; s%d.className='empty';", 
+                        i, i, i, i));
+            }
         }
         
         jsBuilder.append("}}catch(e){console.error(e);}})();");
@@ -289,14 +301,9 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
     }
 
     public void addCarRepairInfoForTest() {
-        carRepairInfoList.add(new CarRepairInfo(CarRepairInfo.RepairStatus.IN_PROGRESS, "2나2", "아반떼MD", 12 * 60));
-        carRepairInfoList.add(new CarRepairInfo(CarRepairInfo.RepairStatus.FINAL_INSPECTION, "3다3", "I520", 13 * 60 + 30));
-        carRepairInfoList.add(new CarRepairInfo(CarRepairInfo.RepairStatus.COMPLETED, "4라4", "모닝", null));
-        carRepairInfoList.add(new CarRepairInfo(CarRepairInfo.RepairStatus.IN_PROGRESS, "5마5", "K3", 15 * 60 + 30));
+        carRepairInfoDisplayList.add(new CarRepairInfo(CarRepairInfo.RepairStatus.IN_PROGRESS, "2나2", "아반떼MD", 12 * 60));
+        carRepairInfoDisplayList.add(new CarRepairInfo(CarRepairInfo.RepairStatus.FINAL_INSPECTION, "3다3", "I520", 13 * 60 + 30));
+        carRepairInfoDisplayList.add(new CarRepairInfo(CarRepairInfo.RepairStatus.COMPLETED, "4라4", "모닝", null));
+        // carRepairInfoDisplayList.add(new CarRepairInfo(CarRepairInfo.RepairStatus.IN_PROGRESS, "5마5", "K3", 15 * 60 + 30));
     }
-
-    public void updateCarRepairInfo(CarRepairInfo carRepairInfo) {
-        carRepairInfoList.set(carRepairInfoList.indexOf(carRepairInfo), carRepairInfo);
-    }
-    
 }
