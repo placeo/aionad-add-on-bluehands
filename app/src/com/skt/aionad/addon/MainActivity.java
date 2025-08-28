@@ -33,6 +33,7 @@ import android.os.Looper;
 import android.view.ViewGroup;
 import androidx.constraintlayout.widget.ConstraintLayout;
 import android.view.WindowManager;
+import com.skt.aionad.addon.bluehands.CarRepairInfo;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -41,6 +42,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
+import java.util.ArrayList;
 
 
 public class MainActivity extends AppCompatActivity implements SurfaceHolder.Callback {
@@ -61,22 +63,105 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
 
     private WebView repairStatusWebView;
 
+    private ArrayList<CarRepairInfo> carRepairInfoList = new ArrayList<>();
+
     private final Handler oneShotHandler = new Handler(Looper.getMainLooper());
     private final Runnable oneShotTask = new Runnable() {
         @Override public void run() {
             Timber.i("one-shot timer fired");
+            addCarRepairInfoForTest();
+
+            for (CarRepairInfo carRepairInfo : carRepairInfoList) {
+                Timber.i("RepairStatus: %s, LicensePlateNumber: %s, CarModel: %s, EstimatedFinishTimeMinutes: %s",
+                    carRepairInfo.getRepairStatus(),
+                    carRepairInfo.getLicensePlateNumber(),
+                    carRepairInfo.getCarModel(),
+                    carRepairInfo.getEstimatedFinishTimeMinutes()
+                );
+            }
+
             if (repairStatusWebView != null) {
-                String js = "(function(){try{var t=document.querySelector('table');if(!t)return;var r=t.rows;"
-                          + "if(r.length>=3){"
-                          + "var h=r[0].cells[1]; h.textContent='작업중'; h.className='h working';"
-                          + "var p=r[1].cells[1]; p.textContent='1가1 SM3'; p.className='plate';"
-                          + "var s=r[2].cells[1]; s.innerHTML='예상 완료 시간 : <span class=\\\"time\\\">13:00</span>'; s.className='status';"
-                          + "}"
-                          + "}catch(e){}})();";
-                repairStatusWebView.evaluateJavascript(js, null);
+                updateRepairStatusWebView();
             }
         }
     };
+
+    private void updateRepairStatusWebView() {
+        if (repairStatusWebView == null || carRepairInfoList.isEmpty()) {
+            return;
+        }
+
+        StringBuilder jsBuilder = new StringBuilder();
+        jsBuilder.append("(function(){try{var t=document.querySelector('table');if(!t)return;var r=t.rows;");
+        jsBuilder.append("if(r.length>=3){");
+
+        // 최대 4개의 컬럼까지 처리 (현재 HTML 테이블 구조에 맞춤)
+        int maxColumns = Math.min(carRepairInfoList.size(), 4);
+        
+        for (int i = 0; i < maxColumns; i++) {
+            CarRepairInfo carInfo = carRepairInfoList.get(i);
+            
+            // 상태에 따른 CSS 클래스 결정
+            String statusClass = getStatusClass(carInfo.getRepairStatus());
+            String statusText = getStatusText(carInfo.getRepairStatus());
+            
+            // 헤더 업데이트 (첫 번째 행)
+            jsBuilder.append(String.format("var h%d=r[0].cells[%d]; h%d.textContent='%s'; h%d.className='h %s';", 
+                    i, i, i, statusText, i, statusClass));
+            
+            // 차량 정보 업데이트 (두 번째 행)
+            String plateAndModel = carInfo.getLicensePlateNumber() + " " + carInfo.getCarModel();
+            jsBuilder.append(String.format("var p%d=r[1].cells[%d]; p%d.textContent='%s'; p%d.className='plate';", 
+                    i, i, i, plateAndModel, i));
+            
+            // 상태 정보 업데이트 (세 번째 행)
+            String statusInfo = getStatusInfoText(carInfo);
+            jsBuilder.append(String.format("var s%d=r[2].cells[%d]; s%d.innerHTML='%s'; s%d.className='status';", 
+                    i, i, i, statusInfo, i));
+        }
+        
+        jsBuilder.append("}}catch(e){console.error(e);}})();");
+        
+        String js = jsBuilder.toString();
+        repairStatusWebView.evaluateJavascript(js, null);
+    }
+
+    private String getStatusClass(CarRepairInfo.RepairStatus status) {
+        switch (status) {
+            case COMPLETED:
+                return "done";
+            case FINAL_INSPECTION:
+                return "inspect";
+            case IN_PROGRESS:
+                return "working";
+            default:
+                return "working";
+        }
+    }
+
+    private String getStatusText(CarRepairInfo.RepairStatus status) {
+        switch (status) {
+            case COMPLETED:
+                return "작업완료";
+            case FINAL_INSPECTION:
+                return "최종점검";
+            case IN_PROGRESS:
+                return "작업중";
+            default:
+                return "작업중";
+        }
+    }
+
+    private String getStatusInfoText(CarRepairInfo carInfo) {
+        if (carInfo.getRepairStatus() == CarRepairInfo.RepairStatus.COMPLETED) {
+            return "완료";
+        } else if (carInfo.getEstimatedFinishTimeMinutes() != null) {
+            String timeStr = CarRepairInfo.formatMinutesToTime(carInfo.getEstimatedFinishTimeMinutes());
+            return "예상 완료 시간 : <span class=\\\"time\\\">" + timeStr + "</span>";
+        } else {
+            return "시간 미정";
+        }
+    }
 
     @Override
     protected void onStart() {
@@ -203,4 +288,15 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
         return size;
     }
 
+    public void addCarRepairInfoForTest() {
+        carRepairInfoList.add(new CarRepairInfo(CarRepairInfo.RepairStatus.IN_PROGRESS, "2나2", "아반떼MD", 12 * 60));
+        carRepairInfoList.add(new CarRepairInfo(CarRepairInfo.RepairStatus.FINAL_INSPECTION, "3다3", "I520", 13 * 60 + 30));
+        carRepairInfoList.add(new CarRepairInfo(CarRepairInfo.RepairStatus.COMPLETED, "4라4", "모닝", null));
+        carRepairInfoList.add(new CarRepairInfo(CarRepairInfo.RepairStatus.IN_PROGRESS, "5마5", "K3", 15 * 60 + 30));
+    }
+
+    public void updateCarRepairInfo(CarRepairInfo carRepairInfo) {
+        carRepairInfoList.set(carRepairInfoList.indexOf(carRepairInfo), carRepairInfo);
+    }
+    
 }
