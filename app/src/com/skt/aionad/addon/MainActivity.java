@@ -46,6 +46,7 @@ import java.io.OutputStream;
 public class MainActivity extends AppCompatActivity implements SurfaceHolder.Callback {
     private static final int CAMERA_PERMISSION_REQUEST_CODE = 1001;
     private static final long FULLSCREEN_TOGGLE_DELAY_MS = 10000;
+    private static final long ONE_SHOT_DELAY_MS = 5_000L; // 5초
 
     private SurfaceHolder surfaceHolder;
     private PowerManager.WakeLock mWakeLock;  // WakeLock 변수 선언
@@ -58,6 +59,14 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
     private View controlPanel;
     private View videoContainer;
 
+    private final Handler oneShotHandler = new Handler(Looper.getMainLooper());
+    private final Runnable oneShotTask = new Runnable() {
+        @Override public void run() {
+            Timber.i("one-shot timer fired");
+            // TODO: 필요한 작업 실행
+        }
+    };
+
     @Override
     protected void onStart() {
         super.onStart();
@@ -66,6 +75,7 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
             mWakeLock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "AIOnAdAddOn::WakeLock");
             mWakeLock.acquire();
         }
+        
     }
 
     @Override
@@ -123,6 +133,7 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
         // 화면 전환을 위한 View 참조 설정
         controlPanel = findViewById(R.id.control_panel);
         
+        oneShotHandler.postDelayed(oneShotTask, ONE_SHOT_DELAY_MS);
         Timber.i("onCreate end");
     }
 
@@ -138,9 +149,9 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
         stopService(serverIntent);
         Timber.d("onDestroy called, stopping KtorServerService");
 
+        oneShotHandler.removeCallbacks(oneShotTask);
         super.onDestroy();
     }
-
     // Called from native code. This sets the content of the TextView from the UI thread.
     private void setMessage(final String message) {
         /* YKK_TEST 20250717 disable textview
