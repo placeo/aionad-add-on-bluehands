@@ -25,9 +25,13 @@ android {
 
     buildTypes {
         getByName("release") {
-            isMinifyEnabled = true
-            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
-            signingConfig = signingConfigs.getByName("debug")
+            isMinifyEnabled = false
+            // 필요 시 리소스 축소도 끄기
+            // isShrinkResources = false // AGP 8.2+에서 사용
+            
+            //isMinifyEnabled = true
+            //proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+            //signingConfig = signingConfigs.getByName("debug")
         }
         getByName("debug") {
             isMinifyEnabled = false
@@ -67,6 +71,15 @@ android {
 
     lint {
         abortOnError = false
+        checkReleaseBuilds = false
+        // 리포트 생성 비활성화
+        htmlReport = false
+        xmlReport = false
+        sarifReport = false
+        textReport = false
+        // 의존성/생성 코드 검사 생략(시간 단축)
+        checkDependencies = false
+        checkGeneratedSources = false
     }
 }
 

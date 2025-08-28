@@ -116,51 +116,9 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
 
         // Enable JavaScript and load status board HTML
         repair_status_webview.getSettings().setJavaScriptEnabled(true);
-        String tableHtml = "<html>" +
-                "<head>" +
-                "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1, maximum-scale=1\">" +
-                "<style>" +
-                "html, body { height:100%; margin:0; padding:0; background:transparent; font-family:-apple-system, Roboto, Arial, sans-serif; }" +
-                "table { width:100%; height:100%; border-collapse:collapse; table-layout:fixed; }" +
-                "th, td { border: 0; padding: 0.4rem; text-align:center; vertical-align:middle; }" +
-                ".h { color:#ffffff; font-weight:700; font-size:1.0rem; }" +
-                ".done { background:#d9534f; }" +
-                ".inspect { background:#6c757d; }" +
-                ".working { background:#2f6db3; }" +
-                ".empty { background:transparent; }" +
-                ".plate { font-weight:700; font-size:1.1rem; color:#0a2540; }" +
-                ".status { font-size:0.95rem; color:#0a2540; }" +
-                ".time { font-size:1.6rem; font-weight:800; color:#2f6db3; }" +
-                "</style>" +
-                "</head>" +
-                "<body>" +
-                "<table>" +
-                // Header row
-                "<tr>" +
-                "<th class=\"h done\">작업완료</th>" +
-                "<th class=\"h inspect\">최종점검</th>" +
-                "<th class=\"h working\">작업중</th>" +
-                "<th class=\"h empty\"></th>" +
-                "</tr>" +
-                // Row 2: plates
-                "<tr>" +
-                "<td class=\"plate\">＊＊러7821 아반떼MD</td>" +
-                "<td class=\"plate\">＊＊나5195 G80(DH)</td>" +
-                "<td class=\"plate\">＊＊마0179 포터2</td>" +
-                "<td class=\"empty\"></td>" +
-                "</tr>" +
-                // Row 3: status/time
-                "<tr>" +
-                "<td class=\"status\">완료</td>" +
-                "<td class=\"status\">예상 완료 시간 : <span class=\"time\">15:00</span></td>" +
-                "<td class=\"status\">예상 완료 시간 : <span class=\"time\">15:30</span></td>" +
-                "<td class=\"empty\"></td>" +
-                "</tr>" +
-                "</table>" +
-                "</body>" +
-                "</html>";
+        repair_status_webview.loadUrl("file:///android_asset/bluehands/status_board.html");
 
-        repair_status_webview.loadDataWithBaseURL(null, tableHtml, "text/html", "UTF-8", null);
+        // repair_status_webview.loadDataWithBaseURL(null, tableHtml, "text/html", "UTF-8", null);
 
         // 화면 전환을 위한 View 참조 설정
         controlPanel = findViewById(R.id.control_panel);
