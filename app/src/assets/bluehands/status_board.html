@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <style>
+    html, body { height:100%; margin:0; padding:0; background:transparent; font-family:-apple-system, Roboto, Arial, sans-serif; }
+    table { height:100%; border-collapse:collapse; table-layout:fixed; }
+    table.cols-4 { width: 100%; }
+    table.cols-3 { width: 75%; margin: 0 auto; }
+    table.cols-2 { width: 50%; margin: 0 auto; }
+    th, td { border:0; padding:0.4rem; text-align:center; vertical-align:middle; }
+    .h { color:#ffffff; font-weight:700; font-size:1.0rem; }
+    .done { background:#d9534f; }     /* 작업완료 */
+    .inspect { background:#6c757d; }  /* 최종점검 */
+    .working { background:#2f6db3; }  /* 작업중 */
+    .empty { background:transparent; }
+    .plate { font-weight:700; font-size:1.1rem; color:#0a2540; }
+    .status { font-size:0.95rem; color:#0a2540; }
+    .time { font-size:1.6rem; font-weight:800; color:#2f6db3; }
+  </style>
+</head>
+<body>
+  <table>
+    <tr>
+      <th class="h done">작업완료</th>
+      <th class="h inspect">최종점검</th>
+      <th class="h working">작업중</th>
+      <th class="h working">작업중</th>
+      <th class="h empty"></th>
+    </tr>
+    <tr>
+      <td class="plate">＊＊러7821 아반떼MD</td>
+      <td class="plate">＊＊나5195 G80(DH)</td>
+      <td class="plate">＊＊마0179 포터2</td>
+      <td class="plate">＊＊나0179 그랜저</td>
+      <td class="empty"></td>
+    </tr>
+    <tr>
+      <td class="status">완료</td>
+      <td class="status">예상 완료 시간 : <span class="time">15:00</span></td>
+      <td class="status">예상 완료 시간 : <span class="time">15:30</span></td>
+      <td class="status">예상 완료 시간 : <span class="time">16:30</span></td>
+      <td class="empty"></td>
+    </tr>
+  </table>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      const table = document.querySelector('table');
+      if (table) {
+        const firstRow = table.querySelector('tr');
+        if (firstRow) {
+          const colCount = firstRow.children.length;
+          if (colCount > 0) {
+            table.classList.add('cols-' + colCount);
+          }
+        }
+      }
+    });
+  </script>
+</body>
+</html>

@@ -1,3 +1,4 @@
+./etc/build/clean.sh
 ./etc/build/build.sh
 ./etc/run/install.sh
 ./etc/run/application-start.sh
