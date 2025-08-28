@@ -46,7 +46,7 @@ import java.io.OutputStream;
 public class MainActivity extends AppCompatActivity implements SurfaceHolder.Callback {
     private static final int CAMERA_PERMISSION_REQUEST_CODE = 1001;
     private static final long FULLSCREEN_TOGGLE_DELAY_MS = 10000;
-    private static final long ONE_SHOT_DELAY_MS = 5_000L; // 5초
+    private static final long ONE_SHOT_DELAY_MS = 4_000L; // 4초
 
     private SurfaceHolder surfaceHolder;
     private PowerManager.WakeLock mWakeLock;  // WakeLock 변수 선언
@@ -59,11 +59,22 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
     private View controlPanel;
     private View videoContainer;
 
+    private WebView repairStatusWebView;
+
     private final Handler oneShotHandler = new Handler(Looper.getMainLooper());
     private final Runnable oneShotTask = new Runnable() {
         @Override public void run() {
             Timber.i("one-shot timer fired");
-            // TODO: 필요한 작업 실행
+            if (repairStatusWebView != null) {
+                String js = "(function(){try{var t=document.querySelector('table');if(!t)return;var r=t.rows;"
+                          + "if(r.length>=3){"
+                          + "var h=r[0].cells[1]; h.textContent='작업중'; h.className='h working';"
+                          + "var p=r[1].cells[1]; p.textContent='1가1 SM3'; p.className='plate';"
+                          + "var s=r[2].cells[1]; s.innerHTML='예상 완료 시간 : <span class=\\\"time\\\">13:00</span>'; s.className='status';"
+                          + "}"
+                          + "}catch(e){}})();";
+                repairStatusWebView.evaluateJavascript(js, null);
+            }
         }
     };
 
@@ -120,13 +131,13 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
         startService(serverIntent);
 
         // Set WebView background transparent and prepare 4x3 grid (4th column empty)
-        WebView repair_status_webview = findViewById(R.id.car_repair_status_webview);
-        repair_status_webview.setBackgroundColor(Color.TRANSPARENT);
-        repair_status_webview.setLayerType(View.LAYER_TYPE_SOFTWARE, null);
+        repairStatusWebView = findViewById(R.id.car_repair_status_webview);
+        repairStatusWebView.setBackgroundColor(Color.TRANSPARENT);
+        repairStatusWebView.setLayerType(View.LAYER_TYPE_SOFTWARE, null);
 
         // Enable JavaScript and load status board HTML
-        repair_status_webview.getSettings().setJavaScriptEnabled(true);
-        repair_status_webview.loadUrl("file:///android_asset/bluehands/status_board.html");
+        repairStatusWebView.getSettings().setJavaScriptEnabled(true);
+        repairStatusWebView.loadUrl("file:///android_asset/bluehands/status_board.html");
 
         // repair_status_webview.loadDataWithBaseURL(null, tableHtml, "text/html", "UTF-8", null);
 
