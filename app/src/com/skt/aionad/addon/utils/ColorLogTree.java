@@ -14,6 +14,34 @@ public class ColorLogTree extends Timber.DebugTree {
     private static final String LOG_COLOR_DEBUG = "\033[36m";    // Cyan
     private static final String LOG_COLOR_VERBOSE = "\033[35m"; // Magenta
 
+    private final int minLogLevel;
+
+    public ColorLogTree() {
+        this.minLogLevel = Log.VERBOSE; // Default to log everything
+    }
+
+    public ColorLogTree(@NotNull String minLogLevelStr) {
+        this.minLogLevel = parseLogLevel(minLogLevelStr.toUpperCase());
+    }
+
+    private int parseLogLevel(String level) {
+        switch (level) {
+            case "VERBOSE": return Log.VERBOSE;
+            case "DEBUG": return Log.DEBUG;
+            case "INFO": return Log.INFO;
+            case "WARN": return Log.WARN;
+            case "ERROR": return Log.ERROR;
+            default:
+                Log.w("ColorLogTree", "Unknown log level '" + level + "', defaulting to DEBUG.");
+                return Log.DEBUG;
+        }
+    }
+
+    @Override
+    protected boolean isLoggable(@Nullable String tag, int priority) {
+        return priority >= minLogLevel;
+    }
+
     @Override
     protected void log(int priority, @Nullable String tag, @NotNull String message, @Nullable Throwable t) {
         String color;

@@ -33,6 +33,7 @@ import android.os.Looper;
 import android.view.ViewGroup;
 import androidx.constraintlayout.widget.ConstraintLayout;
 import android.view.WindowManager;
+import com.skt.aionad.addon.utils.ConfigManager;
 import com.skt.aionad.addon.bluehands.CarRepairInfo;
 
 import java.io.BufferedReader;
@@ -48,7 +49,7 @@ import java.util.ArrayList;
 public class MainActivity extends AppCompatActivity implements SurfaceHolder.Callback {
     private static final int CAMERA_PERMISSION_REQUEST_CODE = 1001;
     private static final long FULLSCREEN_TOGGLE_DELAY_MS = 10000;
-    private static final long UPDATE_INTERVAL_MS = 4_000L; // 4초
+
 
     private SurfaceHolder surfaceHolder;
     private PowerManager.WakeLock mWakeLock;  // WakeLock 변수 선언
@@ -63,7 +64,9 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
 
     private WebView repairStatusWebView;
 
+    private ArrayList<CarRepairInfo> carRepairInfoJobList = new ArrayList<>();
     private ArrayList<CarRepairInfo> carRepairInfoDisplayList = new ArrayList<>();
+    
 
     private final Handler periodicUpdateHandler = new Handler(Looper.getMainLooper());
     private final Runnable periodicUpdateRunnable = new Runnable() {
@@ -78,7 +81,7 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
             }
 
             // 다음 업데이트를 예약합니다.
-            periodicUpdateHandler.postDelayed(this, UPDATE_INTERVAL_MS);
+            periodicUpdateHandler.postDelayed(this, ConfigManager.getInstance().getCarRepairInfoDisplayInterval());
         }
     };
 
@@ -203,7 +206,7 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
         super.onResume();
         // 액티비티가 보일 때 4초 후부터 주기적인 업데이트를 시작합니다.
         // post()는 즉시 실행, postDelayed()는 지정된 시간 후에 실행합니다.
-        periodicUpdateHandler.postDelayed(periodicUpdateRunnable, UPDATE_INTERVAL_MS);
+        periodicUpdateHandler.postDelayed(periodicUpdateRunnable, ConfigManager.getInstance().getCarRepairInfoDisplayInterval());
         Timber.d("onResume called");
     }
     
