@@ -46,6 +46,7 @@ import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 
 public class MainActivity extends AppCompatActivity implements SurfaceHolder.Callback {
@@ -66,8 +67,11 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
 
     private WebView repairStatusWebView;
 
-    private ArrayList<CarRepairInfo> carRepairInfoJobList = new ArrayList<>();
+    // 스레드 안전한 리스트 - 외부에서 수시로 추가될 수 있음
+    private CopyOnWriteArrayList<CarRepairInfo> carRepairInfoJobList = new CopyOnWriteArrayList<>();
+    // 내부 정렬용 리스트 - 메인 스레드에서만 접근
     private ArrayList<CarRepairInfo> carRepairInfoFinishTimeSortedList = new ArrayList<>();
+    // 화면 표시용 리스트 - 메인 스레드에서만 접근
     private ArrayList<CarRepairInfo> carRepairInfoDisplayList = new ArrayList<>();
     
     // 페이지네이션을 위한 변수들
@@ -333,7 +337,7 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
         carRepairInfoJobList.add(new CarRepairInfo(CarRepairInfo.RepairStatus.FINAL_INSPECTION, "7사7", "그랜저", 11 * 60 + 20));
         carRepairInfoJobList.add(new CarRepairInfo(CarRepairInfo.RepairStatus.IN_PROGRESS, "8아8", "스파크", 14 * 60));
         carRepairInfoJobList.add(new CarRepairInfo(CarRepairInfo.RepairStatus.IN_PROGRESS, "9자9", "레이", 15 * 60));
-        carRepairInfoJobList.add(new CarRepairInfo(CarRepairInfo.RepairStatus.IN_PROGRESS, "10차10", "레이스", 15 * 60 + 10));
+        carRepairInfoJobList.add(new CarRepairInfo(CarRepairInfo.RepairStatus.COMPLETED, "10차10", "레이스", null));
         // 10개의 테스트 데이터로 페이지네이션 테스트 가능
     }
 
@@ -407,5 +411,58 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
         } else {
             Timber.i("Moving to next page: %d/%d", currentPageIndex + 1, totalPages);
         }
+    }
+
+    /**
+     * 스레드 안전하게 새로운 수리 정보를 추가
+     * 외부 스레드(예: Ktor 서버)에서 호출 가능
+     */
+    public void addCarRepairInfo(CarRepairInfo carRepairInfo) {
+        if (carRepairInfo != null) {
+            carRepairInfoJobList.add(carRepairInfo);
+            Timber.i("Added new repair info: %s %s (Thread: %s)", 
+                carRepairInfo.getLicensePlateNumber(), 
+                carRepairInfo.getCarModel(),
+                Thread.currentThread().getName());
+        }
+    }
+
+    /**
+     * 스레드 안전하게 수리 정보를 제거
+     * 외부 스레드에서 호출 가능
+     */
+    public boolean removeCarRepairInfo(String licensePlateNumber) {
+        boolean removed = carRepairInfoJobList.removeIf(info -> 
+            info.getLicensePlateNumber().equals(licensePlateNumber));
+        
+        if (removed) {
+            Timber.i("Removed repair info: %s (Thread: %s)", 
+                licensePlateNumber, Thread.currentThread().getName());
+        }
+        return removed;
+    }
+
+    /**
+     * 스레드 안전하게 수리 정보를 업데이트 (상태나 완료시간 변경)
+     * 외부 스레드에서 호출 가능
+     */
+    public boolean updateCarRepairInfo(String licensePlateNumber, CarRepairInfo.RepairStatus newStatus, Integer newFinishTime) {
+        for (CarRepairInfo info : carRepairInfoJobList) {
+            if (info.getLicensePlateNumber().equals(licensePlateNumber)) {
+                // CarRepairInfo가 immutable하다면 새 객체로 교체해야 함
+                // 현재는 setter가 있다고 가정
+                if (newStatus != null) {
+                    info.setRepairStatus(newStatus);
+                }
+                if (newFinishTime != null) {
+                    info.setEstimatedFinishTimeMinutes(newFinishTime);
+                }
+                
+                Timber.i("Updated repair info: %s, Status: %s, Time: %d (Thread: %s)", 
+                    licensePlateNumber, newStatus, newFinishTime, Thread.currentThread().getName());
+                return true;
+            }
+        }
+        return false;
     }
 }
