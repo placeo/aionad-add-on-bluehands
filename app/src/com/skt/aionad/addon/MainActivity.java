@@ -48,7 +48,7 @@ import java.util.ArrayList;
 public class MainActivity extends AppCompatActivity implements SurfaceHolder.Callback {
     private static final int CAMERA_PERMISSION_REQUEST_CODE = 1001;
     private static final long FULLSCREEN_TOGGLE_DELAY_MS = 10000;
-    private static final long ONE_SHOT_DELAY_MS = 4_000L; // 4초
+    private static final long UPDATE_INTERVAL_MS = 4_000L; // 4초
 
     private SurfaceHolder surfaceHolder;
     private PowerManager.WakeLock mWakeLock;  // WakeLock 변수 선언
@@ -65,25 +65,20 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
 
     private ArrayList<CarRepairInfo> carRepairInfoDisplayList = new ArrayList<>();
 
-    private final Handler oneShotHandler = new Handler(Looper.getMainLooper());
-    private final Runnable oneShotTask = new Runnable() {
+    private final Handler periodicUpdateHandler = new Handler(Looper.getMainLooper());
+    private final Runnable periodicUpdateRunnable = new Runnable() {
         @Override public void run() {
-            Timber.i("one-shot timer fired");
-            carRepairInfoDisplayList.clear();
+            Timber.i("Periodic update: refreshing car repair status.");
+            // YKK_TEST data refresh simulation
+            carRepairInfoDisplayList.clear(); 
             addCarRepairInfoForTest();
-
-            for (CarRepairInfo carRepairInfo : carRepairInfoDisplayList) {
-                Timber.i("RepairStatus: %s, LicensePlateNumber: %s, CarModel: %s, EstimatedFinishTimeMinutes: %s",
-                    carRepairInfo.getRepairStatus(),
-                    carRepairInfo.getLicensePlateNumber(),
-                    carRepairInfo.getCarModel(),
-                    carRepairInfo.getEstimatedFinishTimeMinutes()
-                );
-            }
 
             if (repairStatusWebView != null) {
                 updateRepairStatusWebView();
             }
+
+            // 다음 업데이트를 예약합니다.
+            periodicUpdateHandler.postDelayed(this, UPDATE_INTERVAL_MS);
         }
     };
 
@@ -198,12 +193,17 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
     @Override
     protected void onPause() {
         super.onPause();
+        // 액티비티가 보이지 않을 때 주기적인 업데이트를 중지합니다.
+        periodicUpdateHandler.removeCallbacks(periodicUpdateRunnable);
         Timber.d("onPause called");
     }
     
     @Override
     protected void onResume() {
         super.onResume();
+        // 액티비티가 보일 때 4초 후부터 주기적인 업데이트를 시작합니다.
+        // post()는 즉시 실행, postDelayed()는 지정된 시간 후에 실행합니다.
+        periodicUpdateHandler.postDelayed(periodicUpdateRunnable, UPDATE_INTERVAL_MS);
         Timber.d("onResume called");
     }
     
@@ -241,7 +241,6 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
         // 화면 전환을 위한 View 참조 설정
         controlPanel = findViewById(R.id.control_panel);
         
-        oneShotHandler.postDelayed(oneShotTask, ONE_SHOT_DELAY_MS);
         Timber.i("onCreate end");
     }
 
@@ -257,7 +256,7 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
         stopService(serverIntent);
         Timber.d("onDestroy called, stopping KtorServerService");
 
-        oneShotHandler.removeCallbacks(oneShotTask);
+        periodicUpdateHandler.removeCallbacks(periodicUpdateRunnable);
         super.onDestroy();
     }
     // Called from native code. This sets the content of the TextView from the UI thread.
