@@ -336,7 +336,7 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
         carRepairInfoJobList.add(new CarRepairInfo(CarRepairInfo.RepairStatus.IN_PROGRESS, "6바6", "투싼", 9 * 60 + 45));
         carRepairInfoJobList.add(new CarRepairInfo(CarRepairInfo.RepairStatus.FINAL_INSPECTION, "7사7", "그랜저", 11 * 60 + 20));
         carRepairInfoJobList.add(new CarRepairInfo(CarRepairInfo.RepairStatus.IN_PROGRESS, "8아8", "스파크", 14 * 60));
-        carRepairInfoJobList.add(new CarRepairInfo(CarRepairInfo.RepairStatus.IN_PROGRESS, "9자9", "레이", 15 * 60));
+        carRepairInfoJobList.add(new CarRepairInfo(CarRepairInfo.RepairStatus.IN_PROGRESS, "9자9", "레이", 15 * 60 + 30));
         carRepairInfoJobList.add(new CarRepairInfo(CarRepairInfo.RepairStatus.COMPLETED, "10차10", "레이스", null));
         // 10개의 테스트 데이터로 페이지네이션 테스트 가능
     }
@@ -351,17 +351,24 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
         Collections.sort(carRepairInfoFinishTimeSortedList, new Comparator<CarRepairInfo>() {
             @Override
             public int compare(CarRepairInfo o1, CarRepairInfo o2) {
-                // 완료된 작업은 맨 뒤로
+                // 완료된 작업은 맨 앞으로
                 if (o1.getRepairStatus() == CarRepairInfo.RepairStatus.COMPLETED && 
                     o2.getRepairStatus() != CarRepairInfo.RepairStatus.COMPLETED) {
-                    return 1;
+                    return -1;  // o1이 완료된 경우 앞으로
                 }
                 if (o2.getRepairStatus() == CarRepairInfo.RepairStatus.COMPLETED && 
                     o1.getRepairStatus() != CarRepairInfo.RepairStatus.COMPLETED) {
-                    return -1;
+                    return 1;   // o2가 완료된 경우 o2가 앞으로
                 }
                 
-                // 완료시간 기준 정렬 (null은 맨 뒤로)
+                // 둘 다 완료된 경우 또는 둘 다 진행 중인 경우
+                if (o1.getRepairStatus() == CarRepairInfo.RepairStatus.COMPLETED && 
+                    o2.getRepairStatus() == CarRepairInfo.RepairStatus.COMPLETED) {
+                    // 완료된 작업들끼리는 차량번호 순으로 정렬
+                    return o1.getLicensePlateNumber().compareTo(o2.getLicensePlateNumber());
+                }
+                
+                // 둘 다 진행 중인 경우: 완료시간 기준 정렬 (null은 맨 뒤로)
                 if (o1.getEstimatedFinishTimeMinutes() == null && o2.getEstimatedFinishTimeMinutes() == null) {
                     return 0;
                 }
@@ -377,6 +384,19 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
         });
         
         Timber.i("Sorted repair info list. Total items: %d", carRepairInfoFinishTimeSortedList.size());
+        
+        // 정렬 결과 디버그 로그
+        for (int i = 0; i < carRepairInfoFinishTimeSortedList.size(); i++) {
+            CarRepairInfo info = carRepairInfoFinishTimeSortedList.get(i);
+            Timber.d("Sorted[%d]: %s %s - %s (Time: %s)", 
+                i, 
+                info.getLicensePlateNumber(), 
+                info.getCarModel(), 
+                info.getRepairStatus().name(),
+                info.getEstimatedFinishTimeMinutes() != null ? 
+                    CarRepairInfo.formatMinutesToTime(info.getEstimatedFinishTimeMinutes()) : "null"
+            );
+        }
     }
 
     /**
