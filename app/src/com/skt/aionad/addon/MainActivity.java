@@ -44,6 +44,8 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 
 
 public class MainActivity extends AppCompatActivity implements SurfaceHolder.Callback {
@@ -65,20 +67,37 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
     private WebView repairStatusWebView;
 
     private ArrayList<CarRepairInfo> carRepairInfoJobList = new ArrayList<>();
+    private ArrayList<CarRepairInfo> carRepairInfoFinishTimeSortedList = new ArrayList<>();
     private ArrayList<CarRepairInfo> carRepairInfoDisplayList = new ArrayList<>();
+    
+    // 페이지네이션을 위한 변수들
+    private int currentPageIndex = 0;
+    private static final int ITEMS_PER_PAGE = 4;
     
 
     private final Handler periodicUpdateHandler = new Handler(Looper.getMainLooper());
     private final Runnable periodicUpdateRunnable = new Runnable() {
         @Override public void run() {
-            Timber.i("Periodic update: refreshing car repair status.");
-            // YKK_TEST data refresh simulation
-            carRepairInfoDisplayList.clear(); 
-            addCarRepairInfoForTest();
+            Timber.i("Periodic update: Page %d", currentPageIndex);
+            
+            // 새로운 사이클 시작 시에만 데이터를 새로 로드하고 정렬
+            if (currentPageIndex == 0) {
+                // YKK_TEST data refresh simulation (실제로는 서버에서 데이터를 받아올 것)
+                addCarRepairInfoForTest();
+                sortCarRepairInfoByFinishTime();
+                Timber.i("New cycle started: JobList refreshed and sorted");
+            }
+            
+            // 현재 페이지의 아이템들을 DisplayList에 설정
+            updateDisplayListForCurrentPage();
 
+            // 화면에 표시
             if (repairStatusWebView != null) {
                 updateRepairStatusWebView();
             }
+
+            // 다음 페이지 준비
+            moveToNextPageOrRestart();
 
             // 다음 업데이트를 예약합니다.
             periodicUpdateHandler.postDelayed(this, ConfigManager.getInstance().getCarRepairInfoDisplayInterval());
@@ -303,9 +322,90 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
     }
 
     public void addCarRepairInfoForTest() {
-        carRepairInfoDisplayList.add(new CarRepairInfo(CarRepairInfo.RepairStatus.IN_PROGRESS, "2나2", "아반떼MD", 12 * 60));
-        carRepairInfoDisplayList.add(new CarRepairInfo(CarRepairInfo.RepairStatus.FINAL_INSPECTION, "3다3", "I520", 13 * 60 + 30));
-        carRepairInfoDisplayList.add(new CarRepairInfo(CarRepairInfo.RepairStatus.COMPLETED, "4라4", "모닝", null));
-        // carRepairInfoDisplayList.add(new CarRepairInfo(CarRepairInfo.RepairStatus.IN_PROGRESS, "5마5", "K3", 15 * 60 + 30));
+        // 테스트를 위해 carRepairInfoJobList에 더 많은 데이터 추가
+        carRepairInfoJobList.clear();
+        carRepairInfoJobList.add(new CarRepairInfo(CarRepairInfo.RepairStatus.IN_PROGRESS, "1가1", "소나타", 10 * 60));
+        carRepairInfoJobList.add(new CarRepairInfo(CarRepairInfo.RepairStatus.IN_PROGRESS, "2나2", "아반떼MD", 12 * 60));
+        carRepairInfoJobList.add(new CarRepairInfo(CarRepairInfo.RepairStatus.FINAL_INSPECTION, "3다3", "I520", 13 * 60 + 30));
+        carRepairInfoJobList.add(new CarRepairInfo(CarRepairInfo.RepairStatus.COMPLETED, "4라4", "모닝", null));
+        carRepairInfoJobList.add(new CarRepairInfo(CarRepairInfo.RepairStatus.IN_PROGRESS, "5마5", "K3", 15 * 60 + 30));
+        carRepairInfoJobList.add(new CarRepairInfo(CarRepairInfo.RepairStatus.IN_PROGRESS, "6바6", "투싼", 9 * 60 + 45));
+        carRepairInfoJobList.add(new CarRepairInfo(CarRepairInfo.RepairStatus.FINAL_INSPECTION, "7사7", "그랜저", 11 * 60 + 20));
+        carRepairInfoJobList.add(new CarRepairInfo(CarRepairInfo.RepairStatus.IN_PROGRESS, "8아8", "스파크", 14 * 60));
+        carRepairInfoJobList.add(new CarRepairInfo(CarRepairInfo.RepairStatus.IN_PROGRESS, "9자9", "레이", 15 * 60));
+        carRepairInfoJobList.add(new CarRepairInfo(CarRepairInfo.RepairStatus.IN_PROGRESS, "10차10", "레이스", 15 * 60 + 10));
+        // 10개의 테스트 데이터로 페이지네이션 테스트 가능
+    }
+
+    /**
+     * carRepairInfoJobList를 완료시간 기준으로 정렬하여 carRepairInfoFinishTimeSortedList에 저장
+     */
+    private void sortCarRepairInfoByFinishTime() {
+        carRepairInfoFinishTimeSortedList.clear();
+        carRepairInfoFinishTimeSortedList.addAll(carRepairInfoJobList);
+        
+        Collections.sort(carRepairInfoFinishTimeSortedList, new Comparator<CarRepairInfo>() {
+            @Override
+            public int compare(CarRepairInfo o1, CarRepairInfo o2) {
+                // 완료된 작업은 맨 뒤로
+                if (o1.getRepairStatus() == CarRepairInfo.RepairStatus.COMPLETED && 
+                    o2.getRepairStatus() != CarRepairInfo.RepairStatus.COMPLETED) {
+                    return 1;
+                }
+                if (o2.getRepairStatus() == CarRepairInfo.RepairStatus.COMPLETED && 
+                    o1.getRepairStatus() != CarRepairInfo.RepairStatus.COMPLETED) {
+                    return -1;
+                }
+                
+                // 완료시간 기준 정렬 (null은 맨 뒤로)
+                if (o1.getEstimatedFinishTimeMinutes() == null && o2.getEstimatedFinishTimeMinutes() == null) {
+                    return 0;
+                }
+                if (o1.getEstimatedFinishTimeMinutes() == null) {
+                    return 1;
+                }
+                if (o2.getEstimatedFinishTimeMinutes() == null) {
+                    return -1;
+                }
+                
+                return o1.getEstimatedFinishTimeMinutes().compareTo(o2.getEstimatedFinishTimeMinutes());
+            }
+        });
+        
+        Timber.i("Sorted repair info list. Total items: %d", carRepairInfoFinishTimeSortedList.size());
+    }
+
+    /**
+     * currentPageIndex를 기준으로 4개씩 carRepairInfoDisplayList에 설정
+     */
+    private void updateDisplayListForCurrentPage() {
+        carRepairInfoDisplayList.clear();
+        
+        int startIndex = currentPageIndex * ITEMS_PER_PAGE;
+        int endIndex = Math.min(startIndex + ITEMS_PER_PAGE, carRepairInfoFinishTimeSortedList.size());
+        
+        for (int i = startIndex; i < endIndex; i++) {
+            carRepairInfoDisplayList.add(carRepairInfoFinishTimeSortedList.get(i));
+        }
+        
+        Timber.i("Updated display list for page %d. Items %d-%d (total: %d)", 
+            currentPageIndex, startIndex, endIndex - 1, carRepairInfoDisplayList.size());
+    }
+
+    /**
+     * 다음 페이지로 이동하거나 처음부터 다시 시작
+     */
+    private void moveToNextPageOrRestart() {
+        currentPageIndex++;
+        int totalPages = (int) Math.ceil((double) carRepairInfoFinishTimeSortedList.size() / ITEMS_PER_PAGE);
+        
+        if (currentPageIndex >= totalPages) {
+            // 모든 페이지를 다 보여줬으므로 처음부터 다시 시작
+            currentPageIndex = 0;
+            sortCarRepairInfoByFinishTime(); // carRepairInfoJobList로부터 다시 정렬
+            Timber.i("All pages shown, restarting cycle with fresh sort. Total pages: %d", totalPages);
+        } else {
+            Timber.i("Moving to next page: %d/%d", currentPageIndex + 1, totalPages);
+        }
     }
 }
