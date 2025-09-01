@@ -31,6 +31,22 @@
         <!-- Guideline과 WebView는 LinearLayout 바깥으로 이동 -->
     </LinearLayout>
 
+    <TextView
+        android:id="@+id/status_summary_text"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="20dp"
+        android:layout_marginTop="20dp"
+        android:text="작업완료: 0대, 최종점검: 0대, 작업중: 0대"
+        android:textSize="18sp"
+        android:textStyle="bold"
+        android:textColor="#0a2540"
+        android:background="#E6FFFFFF"
+        android:padding="12dp"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/control_panel" />
+
     <androidx.constraintlayout.widget.Guideline
     android:id="@+id/guideline_top_of_webview"
     android:layout_width="wrap_content"

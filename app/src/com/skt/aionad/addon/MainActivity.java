@@ -47,6 +47,8 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.concurrent.CopyOnWriteArrayList;
+import android.webkit.WebView;
+import android.webkit.WebChromeClient;
 
 
 public class MainActivity extends AppCompatActivity implements SurfaceHolder.Callback {
@@ -66,6 +68,7 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
     private View videoContainer;
 
     private WebView repairStatusWebView;
+    private TextView statusSummaryText;
 
     // 스레드 안전한 리스트 - 외부에서 수시로 추가될 수 있음
     private CopyOnWriteArrayList<CarRepairInfo> carRepairInfoJobList = new CopyOnWriteArrayList<>();
@@ -258,8 +261,23 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
         repairStatusWebView.setBackgroundColor(Color.TRANSPARENT);
         repairStatusWebView.setLayerType(View.LAYER_TYPE_SOFTWARE, null);
 
+        // Initialize status summary TextView
+        statusSummaryText = findViewById(R.id.status_summary_text);
+
         // Enable JavaScript and load status board HTML
         repairStatusWebView.getSettings().setJavaScriptEnabled(true);
+
+        // Set WebChromeClient to detect title changes
+        repairStatusWebView.setWebChromeClient(new WebChromeClient() {
+            @Override
+            public void onReceivedTitle(WebView view, String title) {
+                super.onReceivedTitle(view, title);
+                if (title.contains("작업완료:") && statusSummaryText != null) {
+                    runOnUiThread(() -> statusSummaryText.setText(title));
+                }
+            }
+        });
+
         repairStatusWebView.loadUrl("file:///android_asset/bluehands/status_board.html");
 
         // repair_status_webview.loadDataWithBaseURL(null, tableHtml, "text/html", "UTF-8", null);

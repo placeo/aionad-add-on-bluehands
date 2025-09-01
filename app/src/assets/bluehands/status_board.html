@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
   <style>
-    html, body { height:100%; margin:0; padding:0; background:transparent; font-family:-apple-system, Roboto, Arial, sans-serif; }
+    html, body { height:100%; margin:0; padding:0; background:transparent; font-family:-apple-system, Roboto, Arial, sans-serif; position:relative; }
     table { height:100%; border-collapse:collapse; table-layout:fixed; }
     table.cols-4 { width: 100%; }
     table.cols-5 { width: 100%; }
@@ -19,6 +19,7 @@
     .plate { font-weight:700; font-size:1.1rem; color:#0a2540; }
     .status { font-size:0.95rem; color:#0a2540; }
     .time { font-size:1.6rem; font-weight:800; color:#2f6db3; }
+
   </style>
 </head>
 <body>
@@ -55,6 +56,35 @@
           }
         }
       }
+      
+      // 현황 개수 업데이트 함수
+      function updateStatusCounts() {
+        const headers = document.querySelectorAll('th.h');
+        let inspectCount = 0, workingCount = 0, doneCount = 0;
+        
+        headers.forEach(header => {
+          if (header.classList.contains('inspect')) {
+            inspectCount++;
+          } else if (header.classList.contains('working')) {
+            workingCount++;
+          } else if (header.classList.contains('done')) {
+            doneCount++;
+          }
+        });
+        
+        // Android TextView 업데이트를 위한 title 설정
+        if (typeof Android !== 'undefined' && Android.updateStatus) {
+          Android.updateStatus(doneCount, inspectCount, workingCount);
+        } else {
+          document.title = `작업완료: ${doneCount}대, 최종점검: ${inspectCount}대, 작업중: ${workingCount}대`;
+        }
+      }
+      
+      // 초기 현황 업데이트
+      updateStatusCounts();
+      
+      // 1초마다 현황 개수 업데이트
+      setInterval(updateStatusCounts, 1000);
     });
   </script>
 </body>
