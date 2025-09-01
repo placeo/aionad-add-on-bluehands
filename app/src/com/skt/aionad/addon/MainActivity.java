@@ -48,7 +48,7 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.concurrent.CopyOnWriteArrayList;
 import android.webkit.WebView;
-import android.webkit.WebChromeClient;
+import android.webkit.WebViewClient;
 
 
 public class MainActivity extends AppCompatActivity implements SurfaceHolder.Callback {
@@ -115,7 +115,10 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
         if (repairStatusWebView == null || carRepairInfoDisplayList.isEmpty()) {
             return;
         }
-
+        
+        // carRepairInfoFinishTimeSortedList 기반으로 status summary 업데이트
+        updateStatusSummaryFromFinishTimeSortedList();
+        
         StringBuilder jsBuilder = new StringBuilder();
         jsBuilder.append("(function(){try{var t=document.querySelector('table');if(!t)return;var r=t.rows;");
         jsBuilder.append("if(r.length>=3){");
@@ -266,17 +269,6 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
 
         // Enable JavaScript and load status board HTML
         repairStatusWebView.getSettings().setJavaScriptEnabled(true);
-
-        // Set WebChromeClient to detect title changes
-        repairStatusWebView.setWebChromeClient(new WebChromeClient() {
-            @Override
-            public void onReceivedTitle(WebView view, String title) {
-                super.onReceivedTitle(view, title);
-                if (title.contains("작업완료:") && statusSummaryText != null) {
-                    runOnUiThread(() -> statusSummaryText.setText(title));
-                }
-            }
-        });
 
         repairStatusWebView.loadUrl("file:///android_asset/bluehands/status_board.html");
 
@@ -502,5 +494,34 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
             }
         }
         return false;
+    }
+
+    private void updateStatusSummaryFromFinishTimeSortedList() {
+        int doneCount = 0, inspectCount = 0, workingCount = 0;
+        
+        // carRepairInfoFinishTimeSortedList에서 상태별 개수 계산
+        for (CarRepairInfo info : carRepairInfoFinishTimeSortedList) {
+            switch (info.getRepairStatus()) {
+                case COMPLETED:
+                    doneCount++;
+                    break;
+                case FINAL_INSPECTION:
+                    inspectCount++;
+                    break;
+                case IN_PROGRESS:
+                    workingCount++;
+                    break;
+            }
+        }
+        
+        // UI 업데이트
+        final String statusText = String.format("작업완료: %d대, 최종점검: %d대, 작업중: %d대", 
+            doneCount, inspectCount, workingCount);
+        
+        runOnUiThread(() -> {
+            if (statusSummaryText != null) {
+                statusSummaryText.setText(statusText);
+            }
+        });
     }
 }
