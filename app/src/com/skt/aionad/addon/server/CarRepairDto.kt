@@ -8,8 +8,8 @@ data class CarRepairRequest(
     val licensePlateNumber: String,
     val carModel: String,
     val repairStatus: String, // "COMPLETED", "FINAL_INSPECTION", "IN_PROGRESS"
-    val estimatedFinishTimeMinutes: Int? = null,
-    val requestedTimeSeconds: Int? = null
+    val estimatedFinishTime: String? = null, // "HH:mm:ss" format
+    val requestedTime: String? = null // "HH:mm:ss" format
 ) {
     fun toCarRepairInfo(): CarRepairInfo {
         val status = when (repairStatus.uppercase()) {
@@ -18,7 +18,21 @@ data class CarRepairRequest(
             "IN_PROGRESS" -> CarRepairInfo.RepairStatus.IN_PROGRESS
             else -> CarRepairInfo.RepairStatus.IN_PROGRESS
         }
+
+        val estimatedFinishTimeMinutes = estimatedFinishTime?.let { parseTimeToMinutes(it) }
+        val requestedTimeSeconds = requestedTime?.let { parseTimeToSeconds(it) }
+
         return CarRepairInfo(status, licensePlateNumber, carModel, requestedTimeSeconds, estimatedFinishTimeMinutes)
+    }
+
+    private fun parseTimeToMinutes(time: String): Int {
+        val parts = time.split(":").map { it.toInt() }
+        return parts[0] * 60 + parts[1]
+    }
+
+    private fun parseTimeToSeconds(time: String): Int {
+        val parts = time.split(":").map { it.toInt() }
+        return parts[0] * 3600 + parts[1] * 60 + parts[2]
     }
 }
 
@@ -27,9 +41,7 @@ data class CarRepairResponse(
     val licensePlateNumber: String,
     val carModel: String,
     val repairStatus: String,
-    val estimatedFinishTimeMinutes: Int? = null,
-    val requestedTimeSeconds: Int? = null,
-    val estimatedFinishTime: String? = null, // "HH:mm" format
+    val estimatedFinishTime: String? = null, // "HH:mm:ss" format
     val requestedTime: String? = null // "HH:mm:ss" format
 ) {
     companion object {
@@ -38,15 +50,26 @@ data class CarRepairResponse(
                 licensePlateNumber = info.licensePlateNumber,
                 carModel = info.carModel,
                 repairStatus = info.repairStatus.name,
-                estimatedFinishTimeMinutes = info.estimatedFinishTimeMinutes,
-                requestedTimeSeconds = info.requestedTimeSeconds,
                 estimatedFinishTime = info.estimatedFinishTimeMinutes?.let { 
-                    CarRepairInfo.formatMinutesToTime(it) 
+                    formatMinutesToTime(it) 
                 },
                 requestedTime = info.requestedTimeSeconds?.let { 
-                    CarRepairInfo.formatSecondsToTime(it) 
+                    formatSecondsToTime(it) 
                 }
             )
+        }
+
+        private fun formatMinutesToTime(minutes: Int): String {
+            val hours = minutes / 60
+            val remainingMinutes = minutes % 60
+            return String.format("%02d:%02d:00", hours, remainingMinutes)
+        }
+
+        private fun formatSecondsToTime(seconds: Int): String {
+            val hours = seconds / 3600
+            val remainingMinutes = (seconds % 3600) / 60
+            val remainingSeconds = seconds % 60
+            return String.format("%02d:%02d:%02d", hours, remainingMinutes, remainingSeconds)
         }
     }
 }
