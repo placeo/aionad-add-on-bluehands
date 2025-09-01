@@ -2,14 +2,15 @@ package com.skt.aionad.addon.server
 
 import kotlinx.serialization.Serializable
 import com.skt.aionad.addon.bluehands.CarRepairInfo
+import java.time.LocalTime
+import java.time.format.DateTimeFormatter
 
 @Serializable
 data class CarRepairRequest(
     val licensePlateNumber: String,
     val carModel: String,
     val repairStatus: String, // "COMPLETED", "FINAL_INSPECTION", "IN_PROGRESS"
-    val estimatedFinishTime: String? = null, // "HH:mm:ss" format
-    val requestedTime: String? = null // "HH:mm:ss" format
+    val estimatedFinishTime: String? = null // "HH:mm:ss" format
 ) {
     fun toCarRepairInfo(): CarRepairInfo {
         val status = when (repairStatus.uppercase()) {
@@ -19,12 +20,14 @@ data class CarRepairRequest(
             else -> CarRepairInfo.RepairStatus.IN_PROGRESS
         }
 
-        // Named Arguments 제거하고 순서대로 전달
+        // 시스템 시간을 "HH:mm:ss" 형식으로 가져와 requestedTime 설정
+        val currentTime = LocalTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss"))
+
         return CarRepairInfo(
             status,
             licensePlateNumber,
             carModel,
-            requestedTime,
+            currentTime, // 요청 시간을 시스템 시간으로 설정
             estimatedFinishTime
         )
     }
