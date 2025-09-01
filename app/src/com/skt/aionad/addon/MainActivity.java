@@ -35,6 +35,7 @@ import androidx.constraintlayout.widget.ConstraintLayout;
 import android.view.WindowManager;
 import com.skt.aionad.addon.utils.ConfigManager;
 import com.skt.aionad.addon.bluehands.CarRepairInfo;
+import com.skt.aionad.addon.server.KtorServer;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -70,6 +71,7 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
     private WebView repairStatusWebView;
     private TextView statusSummaryText;
     private TextView carRepairStatusInfoText;
+    private KtorServer ktorServer; // 추가된 멤버 변수
 
     // 스레드 안전한 리스트 - 외부에서 수시로 추가될 수 있음
     private CopyOnWriteArrayList<CarRepairInfo> carRepairInfoJobList = new CopyOnWriteArrayList<>();
@@ -300,9 +302,14 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
 
         setContentView(R.layout.main);
 
-        // Start Ktor Server Service
-        Intent serverIntent = new Intent(this, KtorServerService.class);
-        startService(serverIntent);
+        // Start Ktor Server directly (기존 KtorServerService 코드 대체)
+        try {
+            ktorServer = new KtorServer(this);
+            ktorServer.start();
+            Timber.i("Ktor server started directly from MainActivity on port 8080");
+        } catch (Exception e) {
+            Timber.e(e, "Failed to start Ktor server");
+        }
 
         // Set WebView background transparent and prepare 4x3 grid (4th column empty)
         repairStatusWebView = findViewById(R.id.car_repair_status_webview);
@@ -335,11 +342,18 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
 
     @Override
     protected void onDestroy() {
-        // Stop Ktor Server Service
-        Intent serverIntent = new Intent(this, KtorServerService.class);
-        stopService(serverIntent);
-        Timber.d("onDestroy called, stopping KtorServerService");
-
+        super.onDestroy();
+        
+        // Stop Ktor Server
+        if (ktorServer != null) {
+            try {
+                ktorServer.stop();
+                Timber.i("Ktor server stopped successfully");
+            } catch (Exception e) {
+                Timber.e(e, "Error stopping Ktor server");
+            }
+        }
+        
         // 모든 핸들러 정리
         periodicUpdateHandler.removeCallbacks(periodicUpdateRunnable);
         monitorHandler.removeCallbacks(monitorRunnable);
@@ -546,6 +560,75 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
             }
         }
         return false;
+    }
+
+    /**
+     * REST API용: 모든 차량 정보 조회
+     */
+    public java.util.List<CarRepairInfo> getAllCarRepairInfo() {
+        return new java.util.ArrayList<>(carRepairInfoJobList);
+    }
+
+    /**
+     * REST API용: 특정 차량 정보 조회
+     */
+    public CarRepairInfo getCarRepairInfoByPlate(String licensePlateNumber) {
+        for (CarRepairInfo info : carRepairInfoJobList) {
+            if (info.getLicensePlateNumber().equals(licensePlateNumber)) {
+                return info;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * REST API용: 차량 정보 추가 (중복 체크 포함)
+     */
+    public boolean addCarRepairInfoApi(CarRepairInfo carRepairInfo) {
+        if (carRepairInfo == null || carRepairInfo.getLicensePlateNumber() == null) {
+            return false;
+        }
+        
+        // 중복 체크
+        for (CarRepairInfo existing : carRepairInfoJobList) {
+            if (existing.getLicensePlateNumber().equals(carRepairInfo.getLicensePlateNumber())) {
+                Timber.w("Car repair info already exists: %s", carRepairInfo.getLicensePlateNumber());
+                return false;
+            }
+        }
+        
+        carRepairInfoJobList.add(carRepairInfo);
+        Timber.i("Added new repair info via API: %s %s (Thread: %s)", 
+            carRepairInfo.getLicensePlateNumber(), 
+            carRepairInfo.getCarModel(),
+            Thread.currentThread().getName());
+        return true;
+    }
+
+    /**
+     * REST API용: 차량 정보 완전 업데이트
+     */
+    public boolean updateCarRepairInfoApi(String licensePlateNumber, CarRepairInfo newInfo) {
+        for (int i = 0; i < carRepairInfoJobList.size(); i++) {
+            CarRepairInfo existing = carRepairInfoJobList.get(i);
+            if (existing.getLicensePlateNumber().equals(licensePlateNumber)) {
+                // 새로운 정보로 완전 교체
+                newInfo.setLicensePlateNumber(licensePlateNumber); // 키는 유지
+                carRepairInfoJobList.set(i, newInfo);
+                
+                Timber.i("Updated repair info via API: %s (Thread: %s)", 
+                    licensePlateNumber, Thread.currentThread().getName());
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * REST API용: 차량 정보 삭제
+     */
+    public boolean deleteCarRepairInfoApi(String licensePlateNumber) {
+        return removeCarRepairInfo(licensePlateNumber);
     }
 
     private void updateStatusSummaryFromFinishTimeSortedList() {
