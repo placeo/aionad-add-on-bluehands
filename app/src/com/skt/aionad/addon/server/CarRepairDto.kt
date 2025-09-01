@@ -19,20 +19,14 @@ data class CarRepairRequest(
             else -> CarRepairInfo.RepairStatus.IN_PROGRESS
         }
 
-        val estimatedFinishTimeMinutes = estimatedFinishTime?.let { parseTimeToMinutes(it) }
-        val requestedTimeSeconds = requestedTime?.let { parseTimeToSeconds(it) }
-
-        return CarRepairInfo(status, licensePlateNumber, carModel, requestedTimeSeconds, estimatedFinishTimeMinutes)
-    }
-
-    private fun parseTimeToMinutes(time: String): Int {
-        val parts = time.split(":").map { it.toInt() }
-        return parts[0] * 60 + parts[1]
-    }
-
-    private fun parseTimeToSeconds(time: String): Int {
-        val parts = time.split(":").map { it.toInt() }
-        return parts[0] * 3600 + parts[1] * 60 + parts[2]
+        // Named Arguments 제거하고 순서대로 전달
+        return CarRepairInfo(
+            status,
+            licensePlateNumber,
+            carModel,
+            requestedTime,
+            estimatedFinishTime
+        )
     }
 }
 
@@ -47,29 +41,12 @@ data class CarRepairResponse(
     companion object {
         fun fromCarRepairInfo(info: CarRepairInfo): CarRepairResponse {
             return CarRepairResponse(
-                licensePlateNumber = info.licensePlateNumber,
-                carModel = info.carModel,
-                repairStatus = info.repairStatus.name,
-                estimatedFinishTime = info.estimatedFinishTimeMinutes?.let { 
-                    formatMinutesToTime(it) 
-                },
-                requestedTime = info.requestedTimeSeconds?.let { 
-                    formatSecondsToTime(it) 
-                }
+                info.getLicensePlateNumber(),
+                info.getCarModel(),
+                info.getRepairStatus().name,
+                info.getEstimatedFinishTime(),
+                info.getRequestedTime()
             )
-        }
-
-        private fun formatMinutesToTime(minutes: Int): String {
-            val hours = minutes / 60
-            val remainingMinutes = minutes % 60
-            return String.format("%02d:%02d:00", hours, remainingMinutes)
-        }
-
-        private fun formatSecondsToTime(seconds: Int): String {
-            val hours = seconds / 3600
-            val remainingMinutes = (seconds % 3600) / 60
-            val remainingSeconds = seconds % 60
-            return String.format("%02d:%02d:%02d", hours, remainingMinutes, remainingSeconds)
         }
     }
 }

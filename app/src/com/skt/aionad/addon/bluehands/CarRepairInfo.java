@@ -14,25 +14,22 @@ public class CarRepairInfo implements Serializable, Comparable<CarRepairInfo> {
     private RepairStatus repairStatus;
     private String licensePlateNumber;
     private String carModel;
-    // 자정 이후 분(minute) 단위. 예: 15:30 -> 930
-    private Integer estimatedFinishTimeMinutes;
-    // 요청 시간 - 자정 이후 초(second) 단위. 예: 10:30:45 -> 37845
-    private Integer requestedTimeSeconds;
+    private String estimatedFinishTime; // "HH:mm:ss" 형식
+    private String requestedTime;       // "HH:mm:ss" 형식
 
     public CarRepairInfo() {
     }
 
-    // 새로운 생성자 - requestedTimeSeconds 포함
     public CarRepairInfo(RepairStatus repairStatus,
                          String licensePlateNumber,
                          String carModel,
-                         Integer requestedTimeSeconds,
-                         Integer estimatedFinishTimeMinutes) {
+                         String requestedTime,
+                         String estimatedFinishTime) {
         this.repairStatus = repairStatus;
         this.licensePlateNumber = licensePlateNumber;
         this.carModel = carModel;
-        this.requestedTimeSeconds = requestedTimeSeconds;
-        this.estimatedFinishTimeMinutes = estimatedFinishTimeMinutes;
+        this.requestedTime = requestedTime;
+        this.estimatedFinishTime = estimatedFinishTime;
     }
 
     public RepairStatus getRepairStatus() {
@@ -59,44 +56,20 @@ public class CarRepairInfo implements Serializable, Comparable<CarRepairInfo> {
         this.carModel = carModel;
     }
 
-    public Integer getEstimatedFinishTimeMinutes() {
-        return estimatedFinishTimeMinutes;
+    public String getEstimatedFinishTime() {
+        return estimatedFinishTime;
     }
 
-    public void setEstimatedFinishTimeMinutes(Integer estimatedFinishTimeMinutes) {
-        this.estimatedFinishTimeMinutes = estimatedFinishTimeMinutes;
+    public void setEstimatedFinishTime(String estimatedFinishTime) {
+        this.estimatedFinishTime = estimatedFinishTime;
     }
 
-    public Integer getRequestedTimeSeconds() {
-        return requestedTimeSeconds;
+    public String getRequestedTime() {
+        return requestedTime;
     }
 
-    public void setRequestedTimeSeconds(Integer requestedTimeSeconds) {
-        this.requestedTimeSeconds = requestedTimeSeconds;
-    }
-
-    // "HH:mm" -> 분(Integer). 유효하지 않으면 null 반환
-    public static Integer parseTimeToMinutes(String hhmm) {
-        if (hhmm == null) return null;
-        String s = hhmm.trim();
-        int colon = s.indexOf(':');
-        if (colon <= 0 || colon == s.length() - 1) return null;
-        try {
-            int h = Integer.parseInt(s.substring(0, colon));
-            int m = Integer.parseInt(s.substring(colon + 1));
-            if (h < 0 || h > 23 || m < 0 || m > 59) return null;
-            return h * 60 + m;
-        } catch (NumberFormatException e) {
-            return null;
-        }
-    }
-
-    // 분(Integer) -> "HH:mm"
-    public static String formatMinutesToTime(Integer minutes) {
-        if (minutes == null) return "";
-        int h = Math.max(0, Math.min(23, minutes / 60));
-        int m = Math.max(0, Math.min(59, minutes % 60));
-        return String.format("%02d:%02d", h, m);
+    public void setRequestedTime(String requestedTime) {
+        this.requestedTime = requestedTime;
     }
 
     // "HH:mm:ss" -> 초(Integer). 유효하지 않으면 null 반환
@@ -125,26 +98,21 @@ public class CarRepairInfo implements Serializable, Comparable<CarRepairInfo> {
         return String.format("%02d:%02d:%02d", h, m, s);
     }
 
-    // 편의 메소드: "HH:mm" -> 초(Integer) (초는 0으로 처리)
-    public static Integer parseTimeMinutesToSeconds(String hhmm) {
-        Integer minutes = parseTimeToMinutes(hhmm);
-        return minutes != null ? minutes * 60 : null;
-    }
-
-    // 편의 메소드: 초(Integer) -> "HH:mm" (초는 무시)
-    public static String formatSecondsToTimeMinutes(Integer seconds) {
-        if (seconds == null) return "";
-        return formatMinutesToTime(seconds / 60);
-    }
-
     @Override
     public int compareTo(CarRepairInfo o) {
         if (o == null) return -1;
-        // null 은 가장 뒤로 정렬
-        if (this.estimatedFinishTimeMinutes == null && o.estimatedFinishTimeMinutes == null) return 0;
-        if (this.estimatedFinishTimeMinutes == null) return 1;
-        if (o.estimatedFinishTimeMinutes == null) return -1;
-        return Integer.compare(this.estimatedFinishTimeMinutes, o.estimatedFinishTimeMinutes);
+        if (this.estimatedFinishTime == null && o.estimatedFinishTime == null) return 0;
+        if (this.estimatedFinishTime == null) return 1;
+        if (o.estimatedFinishTime == null) return -1;
+
+        Integer thisTimeInSeconds = parseTimeToSeconds(this.estimatedFinishTime);
+        Integer otherTimeInSeconds = parseTimeToSeconds(o.estimatedFinishTime);
+
+        if (thisTimeInSeconds == null && otherTimeInSeconds == null) return 0;
+        if (thisTimeInSeconds == null) return 1;
+        if (otherTimeInSeconds == null) return -1;
+
+        return Integer.compare(thisTimeInSeconds, otherTimeInSeconds);
     }
 
     @Override
@@ -155,13 +123,13 @@ public class CarRepairInfo implements Serializable, Comparable<CarRepairInfo> {
         return repairStatus == that.repairStatus
                 && Objects.equals(licensePlateNumber, that.licensePlateNumber)
                 && Objects.equals(carModel, that.carModel)
-                && Objects.equals(estimatedFinishTimeMinutes, that.estimatedFinishTimeMinutes)
-                && Objects.equals(requestedTimeSeconds, that.requestedTimeSeconds);
+                && Objects.equals(estimatedFinishTime, that.estimatedFinishTime)
+                && Objects.equals(requestedTime, that.requestedTime);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(repairStatus, licensePlateNumber, carModel, estimatedFinishTimeMinutes, requestedTimeSeconds);
+        return Objects.hash(repairStatus, licensePlateNumber, carModel, estimatedFinishTime, requestedTime);
     }
 
     @Override
@@ -170,8 +138,8 @@ public class CarRepairInfo implements Serializable, Comparable<CarRepairInfo> {
                 "repairStatus=" + repairStatus +
                 ", licensePlateNumber='" + licensePlateNumber + '\'' +
                 ", carModel='" + carModel + '\'' +
-                ", estimatedFinishTimeMinutes=" + estimatedFinishTimeMinutes +
-                ", requestedTimeSeconds=" + requestedTimeSeconds +
+                ", estimatedFinishTime='" + estimatedFinishTime + '\'' +
+                ", requestedTime='" + requestedTime + '\'' +
                 '}';
     }
 }
