@@ -338,16 +338,16 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
     public void addCarRepairInfoForTest() {
         // 테스트를 위해 carRepairInfoJobList에 더 많은 데이터 추가
         carRepairInfoJobList.clear();
-        carRepairInfoJobList.add(new CarRepairInfo(CarRepairInfo.RepairStatus.IN_PROGRESS, "1가1", "소나타", 10 * 60));
-        carRepairInfoJobList.add(new CarRepairInfo(CarRepairInfo.RepairStatus.IN_PROGRESS, "2나2", "아반떼MD", 12 * 60));
-        carRepairInfoJobList.add(new CarRepairInfo(CarRepairInfo.RepairStatus.FINAL_INSPECTION, "3다3", "I520", 13 * 60 + 30));
-        carRepairInfoJobList.add(new CarRepairInfo(CarRepairInfo.RepairStatus.COMPLETED, "4라4", "모닝", null));
-        carRepairInfoJobList.add(new CarRepairInfo(CarRepairInfo.RepairStatus.IN_PROGRESS, "5마5", "K3", 15 * 60 + 30));
-        carRepairInfoJobList.add(new CarRepairInfo(CarRepairInfo.RepairStatus.IN_PROGRESS, "6바6", "투싼", 9 * 60 + 45));
-        carRepairInfoJobList.add(new CarRepairInfo(CarRepairInfo.RepairStatus.FINAL_INSPECTION, "7사7", "그랜저", 11 * 60 + 20));
-        carRepairInfoJobList.add(new CarRepairInfo(CarRepairInfo.RepairStatus.IN_PROGRESS, "8아8", "스파크", 14 * 60));
-        carRepairInfoJobList.add(new CarRepairInfo(CarRepairInfo.RepairStatus.IN_PROGRESS, "9자9", "레이", 15 * 60 + 30));
-        carRepairInfoJobList.add(new CarRepairInfo(CarRepairInfo.RepairStatus.COMPLETED, "10차10", "레이스", null));
+        carRepairInfoJobList.add(new CarRepairInfo(CarRepairInfo.RepairStatus.IN_PROGRESS, "1가1", "소나타", CarRepairInfo.parseTimeToSeconds("08:30:00"), 10 * 60)); // 8:30에 요청
+        carRepairInfoJobList.add(new CarRepairInfo(CarRepairInfo.RepairStatus.IN_PROGRESS, "2나2", "아반떼MD", CarRepairInfo.parseTimeToSeconds("09:15:00"), 12 * 60)); // 9:15에 요청
+        carRepairInfoJobList.add(new CarRepairInfo(CarRepairInfo.RepairStatus.FINAL_INSPECTION, "3다3", "I520", CarRepairInfo.parseTimeToSeconds("10:00:00"), 13 * 60 + 30)); // 10:00에 요청
+        carRepairInfoJobList.add(new CarRepairInfo(CarRepairInfo.RepairStatus.COMPLETED, "4라4", "모닝", CarRepairInfo.parseTimeToSeconds("07:45:00"), null)); // 7:45에 요청
+        carRepairInfoJobList.add(new CarRepairInfo(CarRepairInfo.RepairStatus.IN_PROGRESS, "5마5", "K3", CarRepairInfo.parseTimeToSeconds("11:20:00"), 15 * 60 + 30)); // 11:20에 요청
+        carRepairInfoJobList.add(new CarRepairInfo(CarRepairInfo.RepairStatus.IN_PROGRESS, "6바6", "투싼", CarRepairInfo.parseTimeToSeconds("08:00:00"), 9 * 60 + 45)); // 8:00에 요청
+        carRepairInfoJobList.add(new CarRepairInfo(CarRepairInfo.RepairStatus.FINAL_INSPECTION, "7사7", "그랜저", CarRepairInfo.parseTimeToSeconds("09:30:00"), 11 * 60 + 20)); // 9:30에 요청
+        carRepairInfoJobList.add(new CarRepairInfo(CarRepairInfo.RepairStatus.IN_PROGRESS, "8아8", "스파크", CarRepairInfo.parseTimeToSeconds("10:45:00"), 14 * 60)); // 10:45에 요청
+        carRepairInfoJobList.add(new CarRepairInfo(CarRepairInfo.RepairStatus.IN_PROGRESS, "9자9", "레이", CarRepairInfo.parseTimeToSeconds("12:00:00"), 15 * 60 + 30)); // 12:00에 요청
+        carRepairInfoJobList.add(new CarRepairInfo(CarRepairInfo.RepairStatus.COMPLETED, "10차10", "레이스", CarRepairInfo.parseTimeToSeconds("06:30:00"), null)); // 6:30에 요청
         // 10개의 테스트 데이터로 페이지네이션 테스트 가능
     }
 
@@ -398,11 +398,13 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
         // 정렬 결과 디버그 로그
         for (int i = 0; i < carRepairInfoFinishTimeSortedList.size(); i++) {
             CarRepairInfo info = carRepairInfoFinishTimeSortedList.get(i);
-            Timber.d("Sorted[%d]: %s %s - %s (Time: %s)", 
+            Timber.d("Sorted[%d]: %s %s - %s (RequestedTime: %s, EstimatedFinishTime: %s)", 
                 i, 
                 info.getLicensePlateNumber(), 
                 info.getCarModel(), 
                 info.getRepairStatus().name(),
+                                info.getRequestedTimeSeconds() != null ? 
+                    CarRepairInfo.formatSecondsToTime(info.getRequestedTimeSeconds()) : "null",
                 info.getEstimatedFinishTimeMinutes() != null ? 
                     CarRepairInfo.formatMinutesToTime(info.getEstimatedFinishTimeMinutes()) : "null"
             );
