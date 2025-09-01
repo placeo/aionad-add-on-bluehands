@@ -69,6 +69,7 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
 
     private WebView repairStatusWebView;
     private TextView statusSummaryText;
+    private TextView carRepairStatusInfoText;
 
     // 스레드 안전한 리스트 - 외부에서 수시로 추가될 수 있음
     private CopyOnWriteArrayList<CarRepairInfo> carRepairInfoJobList = new CopyOnWriteArrayList<>();
@@ -266,6 +267,9 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
 
         // Initialize status summary TextView
         statusSummaryText = findViewById(R.id.status_summary_text);
+
+        // Initialize car repair status info TextView
+        carRepairStatusInfoText = findViewById(R.id.car_repair_status_info_text);
 
         // Enable JavaScript and load status board HTML
         repairStatusWebView.getSettings().setJavaScriptEnabled(true);
@@ -516,13 +520,44 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
             }
         }
         
-        // UI 업데이트
+        // String을 미리 생성
         final String statusText = String.format("작업완료: %d대, 최종점검: %d대, 작업중: %d대", 
             doneCount, inspectCount, workingCount);
         
+        // Status Summary UI 업데이트
         runOnUiThread(() -> {
             if (statusSummaryText != null) {
                 statusSummaryText.setText(statusText);
+            }
+        });
+        
+        // Car Repair Status Info List 업데이트
+        updateCarRepairStatusInfoDisplay();
+    }
+
+    private void updateCarRepairStatusInfoDisplay() {
+        if (carRepairStatusInfoText == null) return;
+        
+        StringBuilder infoBuilder = new StringBuilder();
+        
+        for (int i = 0; i < carRepairInfoFinishTimeSortedList.size(); i++) {
+            CarRepairInfo info = carRepairInfoFinishTimeSortedList.get(i);
+            String line = String.format("Sorted[%d]: %s %s - %s (RequestedTime: %s, EstimatedFinishTime: %s)\n", 
+                i, 
+                info.getLicensePlateNumber(), 
+                info.getCarModel(), 
+                info.getRepairStatus().name(),
+                info.getRequestedTimeSeconds() != null ? 
+                    CarRepairInfo.formatSecondsToTime(info.getRequestedTimeSeconds()) : "null",
+                info.getEstimatedFinishTimeMinutes() != null ? 
+                    CarRepairInfo.formatMinutesToTime(info.getEstimatedFinishTimeMinutes()) : "null"
+            );
+            infoBuilder.append(line);
+        }
+        
+        runOnUiThread(() -> {
+            if (carRepairStatusInfoText != null) {
+                carRepairStatusInfoText.setText(infoBuilder.toString());
             }
         });
     }

@@ -28,24 +28,37 @@
                 android:layout_gravity="left|center_vertical"
                 android:scaleType="fitCenter"/>
         </FrameLayout>
+        
+        <!-- Car Repair Status Info List -->
+        <TextView
+            android:id="@+id/car_repair_status_info_text"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:padding="8dp"
+            android:textSize="10sp"
+            android:textColor="#0a2540"
+            android:fontFamily="monospace"
+            android:background="#F0F0F0"
+            android:text="Car Repair Status Info will be displayed here..."
+            android:maxLines="10"
+            android:scrollbars="vertical"
+            android:textIsSelectable="true" />
+        
+        <!-- Status Summary -->
+        <TextView
+            android:id="@+id/status_summary_text"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_margin="20dp"
+            android:text="작업완료: 0대, 최종점검: 0대, 작업중: 0대"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:textColor="#0a2540"
+            android:background="#E6FFFFFF"
+            android:padding="12dp" />
+        
         <!-- Guideline과 WebView는 LinearLayout 바깥으로 이동 -->
     </LinearLayout>
-
-    <TextView
-        android:id="@+id/status_summary_text"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="10dp"
-        android:layout_marginTop="350dp"
-        android:text="작업완료: 0대, 최종점검: 0대, 작업중: 0대"
-        android:textSize="18sp"
-        android:textStyle="bold"
-        android:textColor="#0a2540"
-        android:background="#E6FFFFFF"
-        android:padding="12dp"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/control_panel" />
 
     <androidx.constraintlayout.widget.Guideline
     android:id="@+id/guideline_top_of_webview"
