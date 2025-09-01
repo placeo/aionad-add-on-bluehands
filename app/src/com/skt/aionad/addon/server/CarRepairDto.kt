@@ -7,7 +7,7 @@ import java.time.format.DateTimeFormatter
 
 @Serializable
 data class CarRepairRequest(
-    val licensePlateNumber: String,
+    val licensePlateNumber: String? = null,  // optional로 변경
     val carModel: String,
     val repairStatus: String, // "COMPLETED", "FINAL_INSPECTION", "IN_PROGRESS"
     val estimatedFinishTime: String? = null // "HH:mm:ss" format
@@ -25,7 +25,7 @@ data class CarRepairRequest(
 
         return CarRepairInfo(
             status,
-            licensePlateNumber,
+            licensePlateNumber ?: "", // null인 경우 빈 문자열 (서버에서 URL 값으로 덮어씀)
             carModel,
             currentTime, // 요청 시간을 시스템 시간으로 설정
             estimatedFinishTime

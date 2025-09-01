@@ -63,7 +63,6 @@ curl -X GET http://192.168.10.9:8080/api/car-repair/7사7
 curl -X PUT http://192.168.10.9:8080/api/car-repair/12파12 \
   -H "Content-Type: application/json" \
   -d '{
-    "licensePlateNumber": "12파12",
     "carModel": "소나타",
     "repairStatus": "COMPLETED",
     "estimatedFinishTime": null
@@ -72,7 +71,6 @@ curl -X PUT http://192.168.10.9:8080/api/car-repair/12파12 \
 curl -X PUT http://192.168.10.9:8080/api/car-repair/10차10 \
   -H "Content-Type: application/json" \
   -d '{
-    "licensePlateNumber": "10차10",
     "carModel": "소나타",
     "repairStatus": "IN_PROGRESS",
     "estimatedFinishTime": "16:15:00"
