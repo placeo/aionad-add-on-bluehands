@@ -261,9 +261,15 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
         }
     }
     
+    private Handler handler = new Handler();
+    private Runnable updateRunnable;
+
     @Override
     protected void onPause() {
         super.onPause();
+        if (handler != null && updateRunnable != null) {
+            handler.removeCallbacks(updateRunnable);
+        }
         // WebView 갱신 중지
         periodicUpdateHandler.removeCallbacks(periodicUpdateRunnable);
         // TextView 갱신 중지
@@ -275,6 +281,15 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
     protected void onResume() {
         super.onResume();
         
+        int interval = 2000; // 설정 파일에서 읽어온 값
+        updateRunnable = new Runnable() {
+            @Override
+            public void run() {
+                handler.postDelayed(this, ConfigManager.getInstance().getCarRepairInfoDisplayInterval());
+            }
+        };
+        handler.post(updateRunnable);
+
         // WebView 테이블 갱신: 기존 carRepairInfo interval 사용
         periodicUpdateHandler.postDelayed(periodicUpdateRunnable, ConfigManager.getInstance().getCarRepairInfoDisplayInterval());
         
@@ -343,6 +358,16 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
         // 화면 전환을 위한 View 참조 설정
         controlPanel = findViewById(R.id.control_panel);
         
+        // 주기적 상태 갱신 시작 (토글 핸들러 사용)
+        toggleHandler = new Handler(Looper.getMainLooper());
+        toggleRunnable = new Runnable() {
+            @Override
+            public void run() {
+                toggleHandler.postDelayed(this, ConfigManager.getInstance().getCarRepairInfoDisplayInterval()); // Config의 interval 값 사용
+            }
+        };
+        toggleHandler.post(toggleRunnable);
+        
         Timber.i("onCreate end");
     }
 
@@ -354,6 +379,11 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
     @Override
     protected void onDestroy() {
         super.onDestroy();
+        if (repairStatusWebView != null) {
+            repairStatusWebView.clearCache(true);
+            repairStatusWebView.clearHistory();
+            repairStatusWebView.destroy();
+        }
         
         // Stop Ktor Server
         if (ktorServer != null) {
@@ -700,5 +730,5 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
                 carRepairStatusInfoText.setText(infoBuilder.toString());
             }
         });
-    }
+    }   
 }
