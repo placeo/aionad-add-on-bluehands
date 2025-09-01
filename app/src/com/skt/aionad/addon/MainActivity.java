@@ -84,13 +84,27 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
     
 
     private final Handler periodicUpdateHandler = new Handler(Looper.getMainLooper());
+    private long lastUpdateTime = 0; // 마지막 업데이트 시간을 저장하기 위한 변수
+
     private final Runnable periodicUpdateRunnable = new Runnable() {
-        @Override public void run() {
+        @Override 
+        public void run() {
+            long currentTime = System.currentTimeMillis();
+            if (lastUpdateTime != 0) {
+                long actualInterval = currentTime - lastUpdateTime;
+                long expectedInterval = ConfigManager.getInstance().getCarRepairInfoDisplayInterval();
+                long deviation = Math.abs(actualInterval - expectedInterval);
+                
+                Timber.d("Expected: %dms, Actual: %dms, Deviation: %dms", 
+                    expectedInterval, actualInterval, deviation);
+            }
+            lastUpdateTime = currentTime;
+            
             Timber.i("Periodic update: Page %d", currentPageIndex);
             
             // 새로운 사이클 시작 시에만 데이터를 새로 로드하고 정렬
             if (currentPageIndex == 0) {
-                // YKK_TEST data refresh simulation (실제로는 서버에서 데이터를 받아올 것)
+                // 테스트 데이터 추가 (실제로는 서버에서 데이터를 받아올 것)
                 addCarRepairInfoForTest();
                 sortCarRepairInfoByFinishTime();
                 Timber.i("New cycle started: JobList refreshed and sorted");
@@ -106,8 +120,7 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
 
             // 다음 페이지 준비
             moveToNextPageOrRestart();
-
-            // 다음 업데이트를 예약합니다.
+            
             periodicUpdateHandler.postDelayed(this, ConfigManager.getInstance().getCarRepairInfoDisplayInterval());
         }
     };
