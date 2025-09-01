@@ -56,6 +56,9 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
     private static final int CAMERA_PERMISSION_REQUEST_CODE = 1001;
     private static final long FULLSCREEN_TOGGLE_DELAY_MS = 10000;
 
+    // 테스트 데이터 초기화 카운터 (static 변수)
+    private static int testDataInitCount = 0;
+
 
     private SurfaceHolder surfaceHolder;
     private PowerManager.WakeLock mWakeLock;  // WakeLock 변수 선언
@@ -121,8 +124,16 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
             
             // 새로운 사이클 시작 시에만 데이터를 새로 로드하고 정렬
             if (currentPageIndex == 0) {
-                // 테스트 데이터 추가 (실제로는 서버에서 데이터를 받아올 것)
-                addCarRepairInfoForTest();
+                // static count를 사용해서 테스트 데이터는 최초 1회만 추가
+                testDataInitCount++;
+                if (testDataInitCount == 1) {
+                    // 테스트 데이터 추가 (실제로는 서버에서 데이터를 받아올 것)
+                    addCarRepairInfoForTest();
+                    Timber.i("Test data initialized for the first time (count: %d)", testDataInitCount);
+                } else {
+                    Timber.d("Test data already initialized (count: %d). Skipping addCarRepairInfoForTest()", testDataInitCount);
+                }
+                
                 sortCarRepairInfoByFinishTime();
                 Timber.i("New cycle started: JobList refreshed and sorted");
             }
@@ -402,15 +413,15 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
     public void addCarRepairInfoForTest() {
         // 테스트를 위해 carRepairInfoJobList에 더 많은 데이터 추가
         carRepairInfoJobList.clear();
-        carRepairInfoJobList.add(new CarRepairInfo(CarRepairInfo.RepairStatus.IN_PROGRESS, "1가1", "소나타", CarRepairInfo.parseTimeToSeconds("08:30:00"), 10 * 60)); // 8:30에 요청
-        carRepairInfoJobList.add(new CarRepairInfo(CarRepairInfo.RepairStatus.IN_PROGRESS, "2나2", "아반떼MD", CarRepairInfo.parseTimeToSeconds("09:15:00"), 12 * 60)); // 9:15에 요청
-        carRepairInfoJobList.add(new CarRepairInfo(CarRepairInfo.RepairStatus.FINAL_INSPECTION, "3다3", "I520", CarRepairInfo.parseTimeToSeconds("10:00:00"), 13 * 60 + 30)); // 10:00에 요청
+        carRepairInfoJobList.add(new CarRepairInfo(CarRepairInfo.RepairStatus.IN_PROGRESS, "1가1", "소나타", CarRepairInfo.parseTimeToSeconds("08:30:00"), CarRepairInfo.parseTimeToMinutes("10:30"))); // 8:30에 요청
+        carRepairInfoJobList.add(new CarRepairInfo(CarRepairInfo.RepairStatus.IN_PROGRESS, "2나2", "아반떼MD", CarRepairInfo.parseTimeToSeconds("09:15:00"), CarRepairInfo.parseTimeToMinutes("12:15"))); // 9:15에 요청
+        carRepairInfoJobList.add(new CarRepairInfo(CarRepairInfo.RepairStatus.FINAL_INSPECTION, "3다3", "I520", CarRepairInfo.parseTimeToSeconds("10:00:00"), CarRepairInfo.parseTimeToMinutes("13:30"))); // 10:00에 요청
         carRepairInfoJobList.add(new CarRepairInfo(CarRepairInfo.RepairStatus.COMPLETED, "4라4", "모닝", CarRepairInfo.parseTimeToSeconds("07:45:00"), null)); // 7:45에 요청
-        carRepairInfoJobList.add(new CarRepairInfo(CarRepairInfo.RepairStatus.IN_PROGRESS, "5마5", "K3", CarRepairInfo.parseTimeToSeconds("11:20:00"), 15 * 60 + 30)); // 11:20에 요청
-        carRepairInfoJobList.add(new CarRepairInfo(CarRepairInfo.RepairStatus.IN_PROGRESS, "6바6", "투싼", CarRepairInfo.parseTimeToSeconds("08:00:00"), 9 * 60 + 45)); // 8:00에 요청
-        carRepairInfoJobList.add(new CarRepairInfo(CarRepairInfo.RepairStatus.FINAL_INSPECTION, "7사7", "그랜저", CarRepairInfo.parseTimeToSeconds("09:30:00"), 11 * 60 + 20)); // 9:30에 요청
-        carRepairInfoJobList.add(new CarRepairInfo(CarRepairInfo.RepairStatus.IN_PROGRESS, "8아8", "스파크", CarRepairInfo.parseTimeToSeconds("10:45:00"), 14 * 60)); // 10:45에 요청
-        carRepairInfoJobList.add(new CarRepairInfo(CarRepairInfo.RepairStatus.IN_PROGRESS, "9자9", "레이", CarRepairInfo.parseTimeToSeconds("12:00:00"), 15 * 60 + 30)); // 12:00에 요청
+        carRepairInfoJobList.add(new CarRepairInfo(CarRepairInfo.RepairStatus.IN_PROGRESS, "5마5", "K3", CarRepairInfo.parseTimeToSeconds("11:20:00"), CarRepairInfo.parseTimeToMinutes("15:30"))); // 11:20에 요청
+        carRepairInfoJobList.add(new CarRepairInfo(CarRepairInfo.RepairStatus.IN_PROGRESS, "6바6", "투싼", CarRepairInfo.parseTimeToSeconds("08:00:00"), CarRepairInfo.parseTimeToMinutes("09:45"))); // 8:00에 요청
+        carRepairInfoJobList.add(new CarRepairInfo(CarRepairInfo.RepairStatus.FINAL_INSPECTION, "7사7", "그랜저", CarRepairInfo.parseTimeToSeconds("09:30:00"), CarRepairInfo.parseTimeToMinutes("11:20"))); // 9:30에 요청
+        carRepairInfoJobList.add(new CarRepairInfo(CarRepairInfo.RepairStatus.IN_PROGRESS, "8아8", "스파크", CarRepairInfo.parseTimeToSeconds("10:45:00"), CarRepairInfo.parseTimeToMinutes("14:30"))); // 10:45에 요청
+        carRepairInfoJobList.add(new CarRepairInfo(CarRepairInfo.RepairStatus.IN_PROGRESS, "9자9", "레이", CarRepairInfo.parseTimeToSeconds("12:00:00"), CarRepairInfo.parseTimeToMinutes("15:30"))); // 12:00에 요청
         carRepairInfoJobList.add(new CarRepairInfo(CarRepairInfo.RepairStatus.COMPLETED, "10차10", "레이스", CarRepairInfo.parseTimeToSeconds("06:30:00"), null)); // 6:30에 요청
         // 10개의 테스트 데이터로 페이지네이션 테스트 가능
     }
