@@ -661,10 +661,10 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
         for (int i = 0; i < carRepairInfoJobList.size(); i++) {
             CarRepairInfo existing = carRepairInfoJobList.get(i);
             if (existing.getLicensePlateNumber().equals(licensePlateNumber)) {
-                // 새로운 정보로 완전 교체
-                newInfo.setLicensePlateNumber(licensePlateNumber); // 키는 유지
+                // URL에서 전달된 값을 사용하여 기존 데이터를 업데이트
+                newInfo.setLicensePlateNumber(licensePlateNumber); // 요청 본문에서 제거된 licensePlateNumber를 URL 값으로 설정
                 carRepairInfoJobList.set(i, newInfo);
-                
+
                 Timber.i("Updated repair info via API: %s (Thread: %s)", 
                     licensePlateNumber, Thread.currentThread().getName());
                 return true;
