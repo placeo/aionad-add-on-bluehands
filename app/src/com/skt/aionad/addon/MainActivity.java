@@ -86,6 +86,21 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
     private final Handler periodicUpdateHandler = new Handler(Looper.getMainLooper());
     private long lastUpdateTime = 0; // 마지막 업데이트 시간을 저장하기 위한 변수
 
+    // 모니터 전용 핸들러 (TextView 갱신용)
+    private final Handler monitorHandler = new Handler(Looper.getMainLooper());
+    private final Runnable monitorRunnable = new Runnable() {
+        @Override 
+        public void run() {
+            // TextView들만 갱신
+            updateStatusSummaryFromFinishTimeSortedList();
+            
+            // 다음 모니터 갱신 예약 (monitor.interval은 초 단위이므로 1000 곱함)
+            monitorHandler.postDelayed(this, ConfigManager.getInstance().getMonitorInterval() * 1000L);
+            
+            Timber.d("Monitor update: TextView refreshed");
+        }
+    };
+
     private final Runnable periodicUpdateRunnable = new Runnable() {
         @Override 
         public void run() {
@@ -129,9 +144,6 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
         if (repairStatusWebView == null || carRepairInfoDisplayList.isEmpty()) {
             return;
         }
-        
-        // carRepairInfoFinishTimeSortedList 기반으로 status summary 업데이트
-        updateStatusSummaryFromFinishTimeSortedList();
         
         StringBuilder jsBuilder = new StringBuilder();
         jsBuilder.append("(function(){try{var t=document.querySelector('table');if(!t)return;var r=t.rows;");
@@ -239,18 +251,37 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
     @Override
     protected void onPause() {
         super.onPause();
-        // 액티비티가 보이지 않을 때 주기적인 업데이트를 중지합니다.
+        // WebView 갱신 중지
         periodicUpdateHandler.removeCallbacks(periodicUpdateRunnable);
+        // TextView 갱신 중지
+        monitorHandler.removeCallbacks(monitorRunnable);
         Timber.d("onPause called");
     }
     
     @Override
     protected void onResume() {
         super.onResume();
-        // 액티비티가 보일 때 4초 후부터 주기적인 업데이트를 시작합니다.
-        // post()는 즉시 실행, postDelayed()는 지정된 시간 후에 실행합니다.
+        
+        // WebView 테이블 갱신: 기존 carRepairInfo interval 사용
         periodicUpdateHandler.postDelayed(periodicUpdateRunnable, ConfigManager.getInstance().getCarRepairInfoDisplayInterval());
-        Timber.d("onResume called");
+        
+        // TextView 갱신: monitor 설정에 따라 제어
+        if (ConfigManager.getInstance().isMonitorEnabled()) {
+            // Monitor 활성화: TextView 보이기 + 갱신 시작
+            if (statusSummaryText != null) statusSummaryText.setVisibility(View.VISIBLE);
+            if (carRepairStatusInfoText != null) carRepairStatusInfoText.setVisibility(View.VISIBLE);
+            
+            monitorHandler.removeCallbacks(monitorRunnable);
+            monitorHandler.post(monitorRunnable); // 즉시 1회 실행 후 주기적 반복
+            Timber.d("onResume called - Monitor enabled, TextView visible and updates started");
+        } else {
+            // Monitor 비활성화: TextView 숨기기 + 갱신 중지
+            if (statusSummaryText != null) statusSummaryText.setVisibility(View.GONE);
+            if (carRepairStatusInfoText != null) carRepairStatusInfoText.setVisibility(View.GONE);
+            
+            monitorHandler.removeCallbacks(monitorRunnable);
+            Timber.d("onResume called - Monitor disabled, TextView hidden and updates stopped");
+        }
     }
     
     // Called when the activity is first created.
@@ -309,7 +340,9 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
         stopService(serverIntent);
         Timber.d("onDestroy called, stopping KtorServerService");
 
+        // 모든 핸들러 정리
         periodicUpdateHandler.removeCallbacks(periodicUpdateRunnable);
+        monitorHandler.removeCallbacks(monitorRunnable);
         super.onDestroy();
     }
     // Called from native code. This sets the content of the TextView from the UI thread.
