@@ -156,12 +156,25 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
 
     
     private void updateRepairStatusWebView() {
-        if (repairStatusWebView == null || carRepairInfoDisplayList.isEmpty()) {
+        if (repairStatusWebView == null) {
             return;
         }
-        
+
+        // 데이터가 없으면 테이블을 숨기고 내용 초기화
+        if (carRepairInfoDisplayList.isEmpty()) {
+            String jsHide = "(function(){try{var t=document.querySelector('table');if(!t)return;" +
+                    "t.style.display='none';var r=t.rows;" +
+                    "if(r.length>=3){for(var i=0;i<4;i++){" +
+                    "var h=r[0].cells[i]; if(h){h.textContent=''; h.className='h empty';}" +
+                    "var p=r[1].cells[i]; if(p){p.textContent=''; p.className='empty';}" +
+                    "var s=r[2].cells[i]; if(s){s.innerHTML=''; s.className='empty';}}}" +
+                    "catch(e){console.error(e);}})();";
+            repairStatusWebView.evaluateJavascript(jsHide, null);
+            return;
+        }
+
         StringBuilder jsBuilder = new StringBuilder();
-        jsBuilder.append("(function(){try{var t=document.querySelector('table');if(!t)return;var r=t.rows;");
+        jsBuilder.append("(function(){try{var t=document.querySelector('table');if(!t)return;t.style.display='table';var r=t.rows;");
         jsBuilder.append("if(r.length>=3){");
 
         // 최대 4개의 컬럼까지 처리 (현재 HTML 테이블 구조에 맞춤)
