@@ -76,16 +76,17 @@
         android:scaleType="centerCrop"
         android:adjustViewBounds="true"
         android:layout_margin="0dp"
+        android:elevation="4dp"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="@id/guideline_top_of_webview"
         app:layout_constraintBottom_toBottomOf="parent" />
 
-    <!-- WebView를 로고 오른쪽에 배치 -->
+    <!-- WebView를 로고와 20dp 겹치도록 배치 -->
     <WebView
         android:id="@+id/car_repair_status_webview"
         android:layout_width="0dp"
         android:layout_height="0dp"
-        android:layout_marginStart="0dp"
+        android:layout_marginStart="-20dp"
         app:layout_constraintStart_toEndOf="@id/car_repair_status_logo"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintTop_toTopOf="@id/guideline_top_of_webview"
