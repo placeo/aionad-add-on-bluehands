@@ -79,6 +79,8 @@ curl -X PUT http://192.168.10.9:8080/api/car-repair/0010차100 \
     "estimatedFinishTime": "16:15:00"
   }'
 
+sleep 7
+
 ###########################
 # car repair info removal
 ###########################
