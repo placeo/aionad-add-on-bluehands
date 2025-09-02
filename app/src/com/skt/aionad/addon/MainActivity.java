@@ -153,6 +153,7 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
         }
     };
 
+    
     private void updateRepairStatusWebView() {
         if (repairStatusWebView == null || carRepairInfoDisplayList.isEmpty()) {
             return;
@@ -178,8 +179,9 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
                 jsBuilder.append(String.format("var h%d=r[0].cells[%d]; h%d.textContent='%s'; h%d.className='h %s';", 
                         i, i, i, statusText, i, statusClass));
                 
-                // 차량 정보 업데이트 (두 번째 행)
-                String plateAndModel = carInfo.getLicensePlateNumber() + " " + carInfo.getCarModel();
+                // 차량 정보 업데이트 (두 번째 행) - 차량 번호 마스킹 적용
+                String maskedPlate = maskLicensePlate(carInfo.getLicensePlateNumber());
+                String plateAndModel = maskedPlate + " " + carInfo.getCarModel();
                 jsBuilder.append(String.format("var p%d=r[1].cells[%d]; p%d.textContent='%s'; p%d.className='plate';", 
                         i, i, i, plateAndModel, i));
                 
@@ -444,16 +446,16 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
     public void addCarRepairInfoForTest() {
         // 테스트를 위해 carRepairInfoJobList에 더 많은 데이터 추가
         carRepairInfoJobList.clear();
-        carRepairInfoJobList.add(new CarRepairInfo(CarRepairInfo.RepairStatus.IN_PROGRESS, "1가1", "소나타", "08:30:00", "10:30:00")); // 8:30에 요청
-        carRepairInfoJobList.add(new CarRepairInfo(CarRepairInfo.RepairStatus.IN_PROGRESS, "2나2", "아반떼MD", "09:15:00", "12:15:00")); // 9:15에 요청
-        carRepairInfoJobList.add(new CarRepairInfo(CarRepairInfo.RepairStatus.FINAL_INSPECTION, "3다3", "I520", "10:00:00", "13:30:00")); // 10:00에 요청
-        carRepairInfoJobList.add(new CarRepairInfo(CarRepairInfo.RepairStatus.COMPLETED, "4라4", "모닝", "07:45:00", null)); // 7:45에 요청
-        carRepairInfoJobList.add(new CarRepairInfo(CarRepairInfo.RepairStatus.IN_PROGRESS, "5마5", "K3", "11:20:00", "15:30:00")); // 11:20에 요청
-        carRepairInfoJobList.add(new CarRepairInfo(CarRepairInfo.RepairStatus.IN_PROGRESS, "6바6", "투싼", "08:00:00", "09:45:00")); // 8:00에 요청
-        carRepairInfoJobList.add(new CarRepairInfo(CarRepairInfo.RepairStatus.FINAL_INSPECTION, "7사7", "그랜저", "09:30:00", "11:20:00")); // 9:30에 요청
-        carRepairInfoJobList.add(new CarRepairInfo(CarRepairInfo.RepairStatus.IN_PROGRESS, "8아8", "스파크", "10:45:00", "14:30:00")); // 10:45에 요청
-        carRepairInfoJobList.add(new CarRepairInfo(CarRepairInfo.RepairStatus.IN_PROGRESS, "9자9", "레이", "12:00:00", "15:30:00")); // 12:00에 요청
-        carRepairInfoJobList.add(new CarRepairInfo(CarRepairInfo.RepairStatus.COMPLETED, "10차10", "레이스", "06:30:00", null)); // 6:30에 요청
+        carRepairInfoJobList.add(new CarRepairInfo(CarRepairInfo.RepairStatus.IN_PROGRESS, "001가111", "소나타", "08:30:00", "10:30:00")); // 8:30에 요청
+        carRepairInfoJobList.add(new CarRepairInfo(CarRepairInfo.RepairStatus.IN_PROGRESS, "002나222", "아반떼MD", "09:15:00", "12:15:00")); // 9:15에 요청
+        carRepairInfoJobList.add(new CarRepairInfo(CarRepairInfo.RepairStatus.FINAL_INSPECTION, "003다333", "I520", "10:00:00", "13:30:00")); // 10:00에 요청
+        carRepairInfoJobList.add(new CarRepairInfo(CarRepairInfo.RepairStatus.COMPLETED, "004라444", "모닝", "07:45:00", null)); // 7:45에 요청
+        carRepairInfoJobList.add(new CarRepairInfo(CarRepairInfo.RepairStatus.IN_PROGRESS, "005마555", "K3", "11:20:00", "15:30:00")); // 11:20에 요청
+        carRepairInfoJobList.add(new CarRepairInfo(CarRepairInfo.RepairStatus.IN_PROGRESS, "006바677", "투싼", "08:00:00", "09:45:00")); // 8:00에 요청
+        carRepairInfoJobList.add(new CarRepairInfo(CarRepairInfo.RepairStatus.FINAL_INSPECTION, "007사777", "그랜저", "09:30:00", "11:20:00")); // 9:30에 요청
+        carRepairInfoJobList.add(new CarRepairInfo(CarRepairInfo.RepairStatus.IN_PROGRESS, "008아888", "스파크", "10:45:00", "14:30:00")); // 10:45에 요청
+        carRepairInfoJobList.add(new CarRepairInfo(CarRepairInfo.RepairStatus.IN_PROGRESS, "009자999", "레이", "12:00:00", "15:30:00")); // 12:00에 요청
+        carRepairInfoJobList.add(new CarRepairInfo(CarRepairInfo.RepairStatus.COMPLETED, "0010차100", "레이스", "06:30:00", null)); // 6:30에 요청
         // 10개의 테스트 데이터로 페이지네이션 테스트 가능
     }
 
@@ -720,9 +722,10 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
 
         for (int i = 0; i < carRepairInfoFinishTimeSortedList.size(); i++) {
             CarRepairInfo info = carRepairInfoFinishTimeSortedList.get(i);
+            String maskedPlate = info.getLicensePlateNumber();
             String line = String.format("Sorted[%d]: %s %s - %s (RequestedTime: %s, EstimatedFinishTime: %s)\n",
                     i,
-                    info.getLicensePlateNumber(),
+                    maskedPlate,
                     info.getCarModel(),
                     info.getRepairStatus().name(),
                     info.getRequestedTime() != null ?
@@ -739,4 +742,12 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
             }
         });
     }   
+    
+    // 차량 번호 마스킹 함수 (앞 2자리를 **로 표시)
+    private String maskLicensePlate(String licensePlate) {
+        if (licensePlate != null && licensePlate.length() >= 2) {
+            return "**" + licensePlate.substring(2);
+        }
+        return licensePlate;
+    }
 }
