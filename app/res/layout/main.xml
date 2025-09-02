@@ -60,17 +60,32 @@
     </LinearLayout>
 
     <androidx.constraintlayout.widget.Guideline
-    android:id="@+id/guideline_top_of_webview"
-    android:layout_width="wrap_content"
-    android:layout_height="wrap_content"
-    android:orientation="horizontal"
-    app:layout_constraintGuide_percent="0.85" />
+        android:id="@+id/guideline_top_of_webview"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        app:layout_constraintGuide_percent="0.85" />
 
+    <!-- Car Repair Status 로고 -->
+    <ImageView
+        android:id="@+id/car_repair_status_logo"
+        android:layout_width="120dp"
+        android:layout_height="0dp"
+        android:src="@mipmap/bluehands_car_repair_status_logo"
+        android:contentDescription="Car Repair Status Logo"
+        android:scaleType="fitCenter"
+        android:layout_margin="8dp"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="@id/guideline_top_of_webview"
+        app:layout_constraintBottom_toBottomOf="parent" />
+
+    <!-- WebView를 로고 오른쪽에 배치 -->
     <WebView
         android:id="@+id/car_repair_status_webview"
         android:layout_width="0dp"
         android:layout_height="0dp"
-        app:layout_constraintStart_toStartOf="parent"
+        android:layout_marginStart="8dp"
+        app:layout_constraintStart_toEndOf="@id/car_repair_status_logo"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintTop_toTopOf="@id/guideline_top_of_webview"
         app:layout_constraintBottom_toBottomOf="parent" />
