@@ -50,6 +50,7 @@ import java.util.Comparator;
 import java.util.concurrent.CopyOnWriteArrayList;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
+import java.util.List;
 
 
 public class MainActivity extends AppCompatActivity implements SurfaceHolder.Callback {
@@ -463,49 +464,58 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
      * carRepairInfoJobList를 완료시간 기준으로 정렬하여 carRepairInfoFinishTimeSortedList에 저장
      */
     private void sortCarRepairInfoByFinishTime() {
-        carRepairInfoFinishTimeSortedList.clear();
-        carRepairInfoFinishTimeSortedList.addAll(carRepairInfoJobList);
+        // synchronized 블록에서 안전한 스냅샷 생성
+        List<CarRepairInfo> snapshot;
+        synchronized(this) {
+            snapshot = new ArrayList<>(carRepairInfoJobList);
+        }
         
-        Collections.sort(carRepairInfoFinishTimeSortedList, new Comparator<CarRepairInfo>() {
-            @Override
-            public int compare(CarRepairInfo o1, CarRepairInfo o2) {
-                // 완료된 작업은 맨 앞으로
-                if (o1.getRepairStatus() == CarRepairInfo.RepairStatus.COMPLETED && 
-                    o2.getRepairStatus() != CarRepairInfo.RepairStatus.COMPLETED) {
-                    return -1;  // o1이 완료된 경우 앞으로
-                }
-                if (o2.getRepairStatus() == CarRepairInfo.RepairStatus.COMPLETED && 
-                    o1.getRepairStatus() != CarRepairInfo.RepairStatus.COMPLETED) {
-                    return 1;   // o2가 완료된 경우 o2가 앞으로
-                }
-                
-                // 둘 다 완료된 경우 또는 둘 다 진행 중인 경우
-                if (o1.getRepairStatus() == CarRepairInfo.RepairStatus.COMPLETED && 
-                    o2.getRepairStatus() == CarRepairInfo.RepairStatus.COMPLETED) {
-                    // 완료된 작업들끼리는 차량번호 순으로 정렬
-                    return o1.getLicensePlateNumber().compareTo(o2.getLicensePlateNumber());
-                }
-                
-                // 둘 다 진행 중인 경우: 완료시간 기준 정렬 (null은 맨 뒤로)
-                if (o1.getEstimatedFinishTime() == null && o2.getEstimatedFinishTime() == null) {
-                    return 0;
-                }
-                if (o1.getEstimatedFinishTime() == null) {
-                    return 1;
-                }
-                if (o2.getEstimatedFinishTime() == null) {
-                    return -1;
-                }
-                
-                Integer thisTimeInSeconds = CarRepairInfo.parseTimeToSeconds(o1.getEstimatedFinishTime());
-                Integer otherTimeInSeconds = CarRepairInfo.parseTimeToSeconds(o2.getEstimatedFinishTime());
+        // UI 스레드에서 정렬 및 업데이트
+        runOnUiThread(() -> {
+            carRepairInfoFinishTimeSortedList.clear();
+            carRepairInfoFinishTimeSortedList.addAll(snapshot);
+            
+            Collections.sort(carRepairInfoFinishTimeSortedList, new Comparator<CarRepairInfo>() {
+                @Override
+                public int compare(CarRepairInfo info1, CarRepairInfo info2) {
+                    // 완료된 작업은 맨 앞으로
+                    if (info1.getRepairStatus() == CarRepairInfo.RepairStatus.COMPLETED && 
+                        info2.getRepairStatus() != CarRepairInfo.RepairStatus.COMPLETED) {
+                        return -1;  // info1이 완료된 경우 앞으로
+                    }
+                    if (info2.getRepairStatus() == CarRepairInfo.RepairStatus.COMPLETED && 
+                        info1.getRepairStatus() != CarRepairInfo.RepairStatus.COMPLETED) {
+                        return 1;   // info2가 완료된 경우 info2가 앞으로
+                    }
+                    
+                    // 둘 다 완료된 경우 또는 둘 다 진행 중인 경우
+                    if (info1.getRepairStatus() == CarRepairInfo.RepairStatus.COMPLETED && 
+                        info2.getRepairStatus() == CarRepairInfo.RepairStatus.COMPLETED) {
+                        // 완료된 작업들끼리는 차량번호 순으로 정렬
+                        return info1.getLicensePlateNumber().compareTo(info2.getLicensePlateNumber());
+                    }
+                    
+                    // 둘 다 진행 중인 경우: 완료시간 기준 정렬 (null은 맨 뒤로)
+                    if (info1.getEstimatedFinishTime() == null && info2.getEstimatedFinishTime() == null) {
+                        return 0;
+                    }
+                    if (info1.getEstimatedFinishTime() == null) {
+                        return 1;
+                    }
+                    if (info2.getEstimatedFinishTime() == null) {
+                        return -1;
+                    }
+                    
+                    Integer thisTimeInSeconds = CarRepairInfo.parseTimeToSeconds(info1.getEstimatedFinishTime());
+                    Integer otherTimeInSeconds = CarRepairInfo.parseTimeToSeconds(info2.getEstimatedFinishTime());
 
-                if (thisTimeInSeconds == null && otherTimeInSeconds == null) return 0;
-                if (thisTimeInSeconds == null) return 1;
-                if (otherTimeInSeconds == null) return -1;
+                    if (thisTimeInSeconds == null && otherTimeInSeconds == null) return 0;
+                    if (thisTimeInSeconds == null) return 1;
+                    if (otherTimeInSeconds == null) return -1;
 
-                return Integer.compare(thisTimeInSeconds, otherTimeInSeconds);
-            }
+                    return Integer.compare(thisTimeInSeconds, otherTimeInSeconds);
+                }
+            });
         });
         
         Timber.i("Sorted repair info list. Total items: %d", carRepairInfoFinishTimeSortedList.size());
@@ -593,18 +603,23 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
      * 스레드 안전하게 수리 정보를 업데이트 (상태나 완료시간 변경)
      * 외부 스레드에서 호출 가능
      */
-    public boolean updateCarRepairInfo(String licensePlateNumber, CarRepairInfo.RepairStatus newStatus, Integer newFinishTime) {
-        for (CarRepairInfo info : carRepairInfoJobList) {
+    public synchronized boolean updateCarRepairInfo(String licensePlateNumber, CarRepairInfo.RepairStatus newStatus, Integer newFinishTime) {
+        for (int i = 0; i < carRepairInfoJobList.size(); i++) {
+            CarRepairInfo info = carRepairInfoJobList.get(i);
             if (info.getLicensePlateNumber().equals(licensePlateNumber)) {
-                // 상태 업데이트
-                if (newStatus != null) {
-                    info.setRepairStatus(newStatus);
-                }
-                // 완료 시간 업데이트
-                if (newFinishTime != null) {
-                    info.setEstimatedFinishTime(CarRepairInfo.formatSecondsToTime(newFinishTime)); // 초 단위를 문자열로 변환
-                }
-
+                
+                // 새로운 객체 생성 (불변성 유지)
+                CarRepairInfo updatedInfo = new CarRepairInfo(
+                    newStatus != null ? newStatus : info.getRepairStatus(),
+                    info.getLicensePlateNumber(),
+                    info.getCarModel(),
+                    info.getRequestedTime(),
+                    newFinishTime != null ? CarRepairInfo.formatSecondsToTime(newFinishTime) : info.getEstimatedFinishTime()
+                );
+                
+                // 원자적 교체
+                carRepairInfoJobList.set(i, updatedInfo);
+                
                 Timber.i("Updated repair info: %s, Status: %s, Time: %s (Thread: %s)", 
                     licensePlateNumber, newStatus, newFinishTime, Thread.currentThread().getName());
                 return true;
@@ -623,7 +638,7 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
     /**
      * REST API용: 특정 차량 정보 조회
      */
-    public CarRepairInfo getCarRepairInfoByPlate(String licensePlateNumber) {
+    public synchronized CarRepairInfo getCarRepairInfoByPlate(String licensePlateNumber) {
         for (CarRepairInfo info : carRepairInfoJobList) {
             if (info.getLicensePlateNumber().equals(licensePlateNumber)) {
                 return info;
@@ -635,12 +650,12 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
     /**
      * REST API용: 차량 정보 추가 (중복 체크 포함)
      */
-    public boolean addCarRepairInfoApi(CarRepairInfo carRepairInfo) {
+    public synchronized boolean addCarRepairInfoApi(CarRepairInfo carRepairInfo) {
         if (carRepairInfo == null || carRepairInfo.getLicensePlateNumber() == null) {
             return false;
         }
         
-        // 중복 체크
+        // 중복 체크와 추가를 원자적으로 처리
         for (CarRepairInfo existing : carRepairInfoJobList) {
             if (existing.getLicensePlateNumber().equals(carRepairInfo.getLicensePlateNumber())) {
                 Timber.w("Car repair info already exists: %s", carRepairInfo.getLicensePlateNumber());
@@ -659,14 +674,13 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
     /**
      * REST API용: 차량 정보 완전 업데이트
      */
-    public boolean updateCarRepairInfoApi(String licensePlateNumber, CarRepairInfo newInfo) {
+    public synchronized boolean updateCarRepairInfoApi(String licensePlateNumber, CarRepairInfo newInfo) {
         for (int i = 0; i < carRepairInfoJobList.size(); i++) {
             CarRepairInfo existing = carRepairInfoJobList.get(i);
             if (existing.getLicensePlateNumber().equals(licensePlateNumber)) {
-                // URL에서 전달된 값을 사용하여 기존 데이터를 업데이트
-                newInfo.setLicensePlateNumber(licensePlateNumber); // 요청 본문에서 제거된 licensePlateNumber를 URL 값으로 설정
+                newInfo.setLicensePlateNumber(licensePlateNumber);
                 carRepairInfoJobList.set(i, newInfo);
-
+                
                 Timber.i("Updated repair info via API: %s (Thread: %s)", 
                     licensePlateNumber, Thread.currentThread().getName());
                 return true;
@@ -678,7 +692,7 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
     /**
      * REST API용: 차량 정보 삭제
      */
-    public boolean deleteCarRepairInfoApi(String licensePlateNumber) {
+    public synchronized boolean deleteCarRepairInfoApi(String licensePlateNumber) {
         return removeCarRepairInfo(licensePlateNumber);
     }
 

@@ -49,6 +49,7 @@ curl -X POST http://192.168.10.9:8080/api/car-repair \
 curl -X GET http://192.168.10.9:8080/api/car-repair
 
 
+sleep 1
 
 ###########################
 # specified car repair info check
