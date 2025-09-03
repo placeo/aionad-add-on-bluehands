@@ -31,41 +31,7 @@
                 android:layout_gravity="left|center_vertical"
                 android:scaleType="fitStart"/>
         </FrameLayout>
-        <!-- Car Repair Status Info List -->
-        <TextView
-            android:id="@+id/car_repair_status_info_text"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:padding="8dp"
-            android:textSize="10sp"
-            android:textColor="#0a2540"
-            android:fontFamily="monospace"
-            android:background="@android:color/transparent"
-            android:text="Car Repair Status Info will be displayed here..."
-            android:scrollbars="vertical"
-            android:maxLines="5"
-            android:textIsSelectable="true" />
-
-        <!-- Status Summary -->
-        <TextView
-            android:id="@+id/status_summary_text"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_margin="20dp"
-            android:text="작업완료: 0대, 최종점검: 0대, 작업중: 0대"
-            android:textSize="16sp"
-            android:textStyle="bold"
-            android:textColor="#0a2540"
-            android:background="@android:color/transparent"
-            android:padding="12dp" />
     </LinearLayout>
-
-    <androidx.constraintlayout.widget.Guideline
-        android:id="@+id/guideline_top_of_table_webview"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        app:layout_constraintGuide_percent="0.85" />
 
     <!-- WebView와 ImageView를 나누는 세로 Guideline (예: 왼쪽에서 70% 지점) -->
     <androidx.constraintlayout.widget.Guideline
@@ -75,30 +41,75 @@
         android:orientation="vertical"
         app:layout_constraintGuide_percent="0.74" />
 
-    <!-- 비디오를 위한 WebView (왼쪽 70%) -->
+    <androidx.constraintlayout.widget.Guideline
+        android:id="@+id/guideline_top_of_table_webview"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        app:layout_constraintGuide_percent="0.85" />
+
+    <!-- 비디오를 위한 WebView (왼쪽 70%) - 로고 바로 아래부터 시작 -->
     <WebView
         android:id="@+id/video_webview"
         android:layout_width="0dp"
-    android:layout_height="0dp"
-    app:layout_constraintTop_toBottomOf="@id/control_panel"
-    app:layout_constraintBottom_toTopOf="@id/guideline_top_of_table_webview"
-    app:layout_constraintStart_toStartOf="parent"
-    app:layout_constraintEnd_toStartOf="@id/guideline_vertical_split"
-    app:layout_constraintDimensionRatio="H,16:9"
-    app:layout_constraintVertical_bias="0.0" />
+        android:layout_height="0dp"
+        app:layout_constraintTop_toBottomOf="@id/control_panel"
+        app:layout_constraintBottom_toTopOf="@id/guideline_top_of_table_webview"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toStartOf="@id/guideline_vertical_split"
+        app:layout_constraintDimensionRatio="H,16:9"
+        app:layout_constraintVertical_bias="0.0" />
+
+    <!-- Car Repair Status Info List - video_webview 위에 overlay -->
+    <TextView
+        android:id="@+id/car_repair_status_info_text"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:padding="8dp"
+        android:textSize="10sp"
+        android:textColor="#0a2540"
+        android:fontFamily="monospace"
+        android:background="#80FFFFFF"
+        android:text="Car Repair Status Info will be displayed here..."
+        android:scrollbars="vertical"
+        android:maxLines="5"
+        android:textIsSelectable="true"
+        android:elevation="8dp"
+        app:layout_constraintTop_toBottomOf="@id/control_panel"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toStartOf="@id/guideline_vertical_split"
+        tools:targetApi="lollipop" />
+
+    <!-- Status Summary - video_webview 위에 overlay -->
+    <TextView
+        android:id="@+id/status_summary_text"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_margin="20dp"
+        android:text="작업완료: 0대, 최종점검: 0대, 작업중: 0대"
+        android:textSize="16sp"
+        android:textStyle="bold"
+        android:textColor="#0a2540"
+        android:background="#80FFFFFF"
+        android:padding="12dp"
+        android:elevation="8dp"
+        app:layout_constraintTop_toBottomOf="@id/car_repair_status_info_text"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toStartOf="@id/guideline_vertical_split"
+        tools:targetApi="lollipop" />
 
     <!-- 오른쪽에 표시될 ImageView (오른쪽 30%) -->
     <ImageView
         android:id="@+id/side_imageview"
         android:layout_width="0dp"
-    android:layout_height="0dp"
-    android:src="@mipmap/ic_capture_image"
-    android:scaleType="centerCrop"
-    android:contentDescription="Side Image"
-    app:layout_constraintTop_toBottomOf="@id/control_panel"
-    app:layout_constraintBottom_toTopOf="@id/guideline_top_of_table_webview"
-    app:layout_constraintStart_toEndOf="@id/guideline_vertical_split"
-    app:layout_constraintEnd_toEndOf="parent" />
+        android:layout_height="0dp"
+        android:src="@mipmap/bluehands_top_logo"
+        android:scaleType="centerCrop"
+        android:contentDescription="Side Image"
+        app:layout_constraintTop_toBottomOf="@id/control_panel"
+        app:layout_constraintBottom_toTopOf="@id/guideline_top_of_table_webview"
+        app:layout_constraintStart_toEndOf="@id/guideline_vertical_split"
+        app:layout_constraintEnd_toEndOf="parent" />
 
     <!-- Car Repair Status 로고 -->
     <ImageView
