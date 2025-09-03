@@ -20,16 +20,15 @@
 
         <FrameLayout
             android:layout_width="match_parent"
-            android:layout_height="30dp"
+            android:layout_height="27dp"
             android:background="#BAC6DE">
             <ImageView
                 android:id="@+id/imageview_logo"
-                android:layout_width="wrap_content"
+                android:layout_width="match_parent"
                 android:layout_height="match_parent"
-                android:src="@mipmap/bluehands_logo_pc"
+                android:src="@mipmap/bluehands_top_logo"
                 android:contentDescription="@string/logo_description"
-                android:layout_gravity="left|center_vertical"
-                android:scaleType="fitStart"/>
+                android:scaleType="centerCrop" />
         </FrameLayout>
     </LinearLayout>
 
