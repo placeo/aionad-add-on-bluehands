@@ -73,6 +73,7 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
     private View videoContainer;
 
     private WebView repairStatusWebView;
+    private WebView videoWebView; // 비디오 재생용 WebView 추가
     private TextView statusSummaryText;
     private TextView carRepairStatusInfoText;
     private KtorServer ktorServer; // 추가된 멤버 변수
@@ -359,6 +360,25 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
         repairStatusWebView.setBackgroundColor(Color.TRANSPARENT);
         repairStatusWebView.setLayerType(View.LAYER_TYPE_SOFTWARE, null);
 
+        // Initialize video WebView
+        videoWebView = findViewById(R.id.video_webview);
+        if (videoWebView != null) {
+            // WebView 설정
+            videoWebView.getSettings().setJavaScriptEnabled(true);
+            videoWebView.getSettings().setMediaPlaybackRequiresUserGesture(false); // 자동 재생 허용
+            videoWebView.getSettings().setMixedContentMode(android.webkit.WebSettings.MIXED_CONTENT_ALWAYS_ALLOW);
+            videoWebView.setBackgroundColor(Color.BLACK);
+            
+            // WebViewClient 설정 (필요시 로딩 완료 등을 처리)
+            videoWebView.setWebViewClient(new WebViewClient());
+            
+            // 비디오 HTML 콘텐츠 생성 및 로드
+            String videoHtml = createVideoHtml();
+            videoWebView.loadDataWithBaseURL("file:///android_res/", videoHtml, "text/html", "UTF-8", null);
+            
+            Timber.i("Video WebView initialized and video loaded");
+        }
+
         // Initialize status summary TextView
         statusSummaryText = findViewById(R.id.status_summary_text);
 
@@ -400,6 +420,12 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
             repairStatusWebView.clearCache(true);
             repairStatusWebView.clearHistory();
             repairStatusWebView.destroy();
+        }
+        
+        if (videoWebView != null) {
+            videoWebView.clearCache(true);
+            videoWebView.clearHistory();
+            videoWebView.destroy();
         }
         
         // Stop Ktor Server
@@ -776,5 +802,44 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
             return "**" + licensePlate.substring(2);
         }
         return licensePlate;
+    }
+    
+    /**
+     * 비디오 재생을 위한 HTML 콘텐츠 생성
+     * sonyejin01.mp4 파일을 반복 재생하도록 설정
+     */
+    private String createVideoHtml() {
+        return "<!DOCTYPE html>" +
+                "<html>" +
+                "<head>" +
+                "    <meta charset='UTF-8'>" +
+                "    <meta name='viewport' content='width=device-width, initial-scale=1.0'>" +
+                "    <style>" +
+                "        body { margin: 0; padding: 0; background-color: black; overflow: hidden; }" +
+                "        video { width: 100%; height: 100%; object-fit: cover; }" +
+                "    </style>" +
+                "</head>" +
+                "<body>" +
+                "    <video id='videoPlayer' autoplay loop muted playsinline controls='false'>" +
+                "        <source src='file:///android_res/raw/sonyejin01.mp4' type='video/mp4'>" +
+                "        비디오를 재생할 수 없습니다." +
+                "    </video>" +
+                "    <script>" +
+                "        const video = document.getElementById('videoPlayer');" +
+                "        video.addEventListener('loadeddata', function() {" +
+                "            console.log('Video loaded successfully');" +
+                "            video.play().catch(e => console.error('Play failed:', e));" +
+                "        });" +
+                "        video.addEventListener('error', function(e) {" +
+                "            console.error('Video error:', e);" +
+                "        });" +
+                "        // 재생이 끝나면 자동으로 다시 재생 (loop 속성과 함께 보장)" +
+                "        video.addEventListener('ended', function() {" +
+                "            video.currentTime = 0;" +
+                "            video.play();" +
+                "        });" +
+                "    </script>" +
+                "</body>" +
+                "</html>";
     }
 }
