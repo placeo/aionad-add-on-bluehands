@@ -49,6 +49,7 @@ public class AddOnBluehands {
     
     private final Handler periodicUpdateHandler = new Handler(Looper.getMainLooper());
     private long lastUpdateTime = 0; // 마지막 업데이트 시간을 저장하기 위한 변수
+    private long appStartTime = 0; // 앱 시작 시간을 저장하기 위한 변수
 
     // 모니터 전용 핸들러 (TextView 갱신용)
     private final Handler monitorHandler = new Handler(Looper.getMainLooper());
@@ -114,6 +115,7 @@ public class AddOnBluehands {
     
     public AddOnBluehands(Context context) {
         this.context = context;
+        this.appStartTime = System.currentTimeMillis(); // 앱 시작 시간 기록
     }
 
     /**
@@ -623,6 +625,19 @@ public class AddOnBluehands {
         if (carRepairStatusInfoText == null) return;
 
         StringBuilder infoBuilder = new StringBuilder();
+        
+        // 가장 윗줄에 Running time 표시
+        String runningTime = getRunningTime();
+        infoBuilder.append("Running time - ").append(runningTime).append("\n");
+        
+        // 디버그 로그 추가
+        Timber.v("Running time updated: %s", runningTime);
+        
+        // 구분선 추가 (Android 호환성을 위해 반복문 사용)
+        for (int i = 0; i < 50; i++) {
+            infoBuilder.append("=");
+        }
+        infoBuilder.append("\n");
 
         for (int i = 0; i < carRepairInfoFinishTimeSortedList.size(); i++) {
             CarRepairInfo info = carRepairInfoFinishTimeSortedList.get(i);
@@ -653,6 +668,24 @@ public class AddOnBluehands {
             return "**" + licensePlate.substring(2);
         }
         return licensePlate;
+    }
+
+    /**
+     * 앱 시작부터 현재까지의 경과 시간을 "HH:MM:SS" 형식으로 반환
+     */
+    private String getRunningTime() {
+        long currentTime = System.currentTimeMillis();
+        long elapsedTime = currentTime - appStartTime;
+        
+        // 밀리초를 초로 변환
+        long totalSeconds = elapsedTime / 1000;
+        
+        // 시, 분, 초 계산
+        long hours = totalSeconds / 3600;
+        long minutes = (totalSeconds % 3600) / 60;
+        long seconds = totalSeconds % 60;
+        
+        return String.format("%02d:%02d:%02d", hours, minutes, seconds);
     }
      
     /**
