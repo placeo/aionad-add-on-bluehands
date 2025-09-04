@@ -12,21 +12,28 @@ import io.ktor.http.*
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import com.skt.aionad.addon.MainActivity
+import com.skt.aionad.addon.AddOnBluehands
 
 @Serializable
 data class TickerRequest(val text: String)
 
-class KtorServer(private val mainActivity: MainActivity) {
+class KtorServer(private val context: android.content.Context) {
 
     private var server: ApplicationEngine? = null
+    private var addOnBluehands: AddOnBluehands? = null
 
     fun start() {
         if (server != null) {
             return
         }
 
+        // MainActivity로부터 AddOnBluehands 인스턴스 가져오기
+        if (context is MainActivity) {
+            addOnBluehands = context.getAddOnBluehands()
+        }
+
         server = embeddedServer(CIO, port = 8080) { 
-            module(mainActivity) 
+            module(addOnBluehands) 
         }.start(wait = false)
     }
 
@@ -36,7 +43,7 @@ class KtorServer(private val mainActivity: MainActivity) {
     }
 }
 
-fun Application.module(mainActivity: MainActivity) {
+fun Application.module(addOnBluehands: AddOnBluehands?) {
     install(ContentNegotiation) {
         json(Json {
             prettyPrint = true
@@ -71,7 +78,14 @@ fun Application.module(mainActivity: MainActivity) {
             // GET /api/car-repair - 전체 목록 조회
             get {
                 try {
-                    val carRepairInfos = mainActivity.getAllCarRepairInfo()
+                    if (addOnBluehands == null) {
+                        call.respond(
+                            HttpStatusCode.ServiceUnavailable,
+                            ApiResponse<Unit>(success = false, message = "AddOnBluehands not available")
+                        )
+                        return@get
+                    }
+                    val carRepairInfos = addOnBluehands.getAllCarRepairInfo()
                     val responses = carRepairInfos.map { CarRepairResponse.fromCarRepairInfo(it) }
                     call.respond(
                         HttpStatusCode.OK,
@@ -93,7 +107,14 @@ fun Application.module(mainActivity: MainActivity) {
                         ApiResponse<Unit>(success = false, message = "License plate number is required")
                     )
 
-                    val carRepairInfo = mainActivity.getCarRepairInfoByPlate(plate)
+                    if (addOnBluehands == null) {
+                        call.respond(
+                            HttpStatusCode.ServiceUnavailable,
+                            ApiResponse<Unit>(success = false, message = "AddOnBluehands not available")
+                        )
+                        return@get
+                    }
+                    val carRepairInfo = addOnBluehands.getCarRepairInfoByPlate(plate)
                     if (carRepairInfo != null) {
                         val response = CarRepairResponse.fromCarRepairInfo(carRepairInfo)
                         call.respond(
@@ -120,7 +141,14 @@ fun Application.module(mainActivity: MainActivity) {
                     val request = call.receive<CarRepairRequest>()
                     val carRepairInfo = request.toCarRepairInfo()
                     
-                    val success = mainActivity.addCarRepairInfoApi(carRepairInfo)
+                    if (addOnBluehands == null) {
+                        call.respond(
+                            HttpStatusCode.ServiceUnavailable,
+                            ApiResponse<Unit>(success = false, message = "AddOnBluehands not available")
+                        )
+                        return@post
+                    }
+                    val success = addOnBluehands.addCarRepairInfoApi(carRepairInfo)
                     if (success) {
                         val response = CarRepairResponse.fromCarRepairInfo(carRepairInfo)
                         call.respond(
@@ -152,7 +180,14 @@ fun Application.module(mainActivity: MainActivity) {
                     val request = call.receive<CarRepairRequest>()
                     val carRepairInfo = request.toCarRepairInfo()
                     
-                    val success = mainActivity.updateCarRepairInfoApi(plate, carRepairInfo)
+                    if (addOnBluehands == null) {
+                        call.respond(
+                            HttpStatusCode.ServiceUnavailable,
+                            ApiResponse<Unit>(success = false, message = "AddOnBluehands not available")
+                        )
+                        return@put
+                    }
+                    val success = addOnBluehands.updateCarRepairInfoApi(plate, carRepairInfo)
                     if (success) {
                         val response = CarRepairResponse.fromCarRepairInfo(carRepairInfo)
                         call.respond(
@@ -181,7 +216,14 @@ fun Application.module(mainActivity: MainActivity) {
                         ApiResponse<Unit>(success = false, message = "License plate number is required")
                     )
 
-                    val success = mainActivity.deleteCarRepairInfoApi(plate)
+                    if (addOnBluehands == null) {
+                        call.respond(
+                            HttpStatusCode.ServiceUnavailable,
+                            ApiResponse<Unit>(success = false, message = "AddOnBluehands not available")
+                        )
+                        return@delete
+                    }
+                    val success = addOnBluehands.deleteCarRepairInfoApi(plate)
                     if (success) {
                         call.respond(
                             HttpStatusCode.OK,
