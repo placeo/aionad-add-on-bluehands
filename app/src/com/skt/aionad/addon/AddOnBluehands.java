@@ -389,55 +389,53 @@ public class AddOnBluehands {
             snapshot = new ArrayList<>(carRepairInfoJobList);
         }
         
-        // UI 스레드에서 정렬 및 업데이트
-        ((MainActivity) context).runOnUiThread(() -> {
-            carRepairInfoFinishTimeSortedList.clear();
-            carRepairInfoFinishTimeSortedList.addAll(snapshot);
-            
-            Collections.sort(carRepairInfoFinishTimeSortedList, new Comparator<CarRepairInfo>() {
-                @Override
-                public int compare(CarRepairInfo info1, CarRepairInfo info2) {
-                    // 완료된 작업은 맨 앞으로
-                    if (info1.getRepairStatus() == CarRepairInfo.RepairStatus.COMPLETED && 
-                        info2.getRepairStatus() != CarRepairInfo.RepairStatus.COMPLETED) {
-                        return -1;  // info1이 완료된 경우 앞으로
-                    }
-                    if (info2.getRepairStatus() == CarRepairInfo.RepairStatus.COMPLETED && 
-                        info1.getRepairStatus() != CarRepairInfo.RepairStatus.COMPLETED) {
-                        return 1;   // info2가 완료된 경우 info2가 앞으로
-                    }
-                    
-                    // 둘 다 완료된 경우 또는 둘 다 진행 중인 경우
-                    if (info1.getRepairStatus() == CarRepairInfo.RepairStatus.COMPLETED && 
-                        info2.getRepairStatus() == CarRepairInfo.RepairStatus.COMPLETED) {
-                        // 완료된 작업들끼리는 차량번호 순으로 정렬
-                        return info1.getLicensePlateNumber().compareTo(info2.getLicensePlateNumber());
-                    }
-                    
-                    // 둘 다 진행 중인 경우: 완료시간 기준 정렬 (null은 맨 뒤로)
-                    if (info1.getEstimatedFinishTime() == null && info2.getEstimatedFinishTime() == null) {
-                        return 0;
-                    }
-                    if (info1.getEstimatedFinishTime() == null) {
-                        return 1;
-                    }
-                    if (info2.getEstimatedFinishTime() == null) {
-                        return -1;
-                    }
-                    
-                    Integer thisTimeInSeconds = CarRepairInfo.parseTimeToSeconds(info1.getEstimatedFinishTime());
-                    Integer otherTimeInSeconds = CarRepairInfo.parseTimeToSeconds(info2.getEstimatedFinishTime());
-
-                    if (thisTimeInSeconds == null && otherTimeInSeconds == null) return 0;
-                    if (thisTimeInSeconds == null) return 1;
-                    if (otherTimeInSeconds == null) return -1;
-
-                    return Integer.compare(thisTimeInSeconds, otherTimeInSeconds);
+        // ✅ 동기식으로 즉시 처리
+        carRepairInfoFinishTimeSortedList.clear();
+        carRepairInfoFinishTimeSortedList.addAll(snapshot);
+        
+        Collections.sort(carRepairInfoFinishTimeSortedList, new Comparator<CarRepairInfo>() {
+            @Override
+            public int compare(CarRepairInfo info1, CarRepairInfo info2) {
+                // 완료된 작업은 맨 앞으로
+                if (info1.getRepairStatus() == CarRepairInfo.RepairStatus.COMPLETED && 
+                    info2.getRepairStatus() != CarRepairInfo.RepairStatus.COMPLETED) {
+                    return -1;  // info1이 완료된 경우 앞으로
                 }
-            });
+                if (info2.getRepairStatus() == CarRepairInfo.RepairStatus.COMPLETED && 
+                    info1.getRepairStatus() != CarRepairInfo.RepairStatus.COMPLETED) {
+                    return 1;   // info2가 완료된 경우 info2가 앞으로
+                }
+                
+                // 둘 다 완료된 경우 또는 둘 다 진행 중인 경우
+                if (info1.getRepairStatus() == CarRepairInfo.RepairStatus.COMPLETED && 
+                    info2.getRepairStatus() == CarRepairInfo.RepairStatus.COMPLETED) {
+                    // 완료된 작업들끼리는 차량번호 순으로 정렬
+                    return info1.getLicensePlateNumber().compareTo(info2.getLicensePlateNumber());
+                }
+                
+                // 둘 다 진행 중인 경우: 완료시간 기준 정렬 (null은 맨 뒤로)
+                if (info1.getEstimatedFinishTime() == null && info2.getEstimatedFinishTime() == null) {
+                    return 0;
+                }
+                if (info1.getEstimatedFinishTime() == null) {
+                    return 1;
+                }
+                if (info2.getEstimatedFinishTime() == null) {
+                    return -1;
+                }
+                
+                Integer thisTimeInSeconds = CarRepairInfo.parseTimeToSeconds(info1.getEstimatedFinishTime());
+                Integer otherTimeInSeconds = CarRepairInfo.parseTimeToSeconds(info2.getEstimatedFinishTime());
+
+                if (thisTimeInSeconds == null && otherTimeInSeconds == null) return 0;
+                if (thisTimeInSeconds == null) return 1;
+                if (otherTimeInSeconds == null) return -1;
+
+                return Integer.compare(thisTimeInSeconds, otherTimeInSeconds);
+            }
         });
         
-        Timber.i("Sorted repair info list. Total items: %d", carRepairInfoFinishTimeSortedList.size());
+        Timber.i("Sorted repair info list synchronously. Total items: %d", carRepairInfoFinishTimeSortedList.size());
         
         // 정렬 결과 디버그 로그
         for (int i = 0; i < carRepairInfoFinishTimeSortedList.size(); i++) {
@@ -459,6 +457,10 @@ public class AddOnBluehands {
      * currentPageIndex를 기준으로 4개씩 carRepairInfoDisplayList에 설정
      */
     private void updateDisplayListForCurrentPage() {
+        // ✅ 데이터 일관성 체크
+        Timber.d("🔍 Before display update - JobList: %d, SortedList: %d, CurrentPage: %d", 
+                carRepairInfoJobList.size(), carRepairInfoFinishTimeSortedList.size(), currentPageIndex);
+        
         carRepairInfoDisplayList.clear();
         
         int startIndex = currentPageIndex * ITEMS_PER_PAGE;
