@@ -20,6 +20,7 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
+import android.webkit.ValueCallback;
 
 /**
  * 차량 수리 상태 관리 및 표시를 담당하는 클래스
@@ -252,13 +253,18 @@ public class AddOnBluehands {
                     "var h=r[0].cells[i]; if(h){h.textContent=''; h.className='h empty';}" +
                     "var p=r[1].cells[i]; if(p){p.textContent=''; p.className='empty';}" +
                     "var s=r[2].cells[i]; if(s){s.innerHTML=''; s.className='empty';}}}" +
-                    "catch(e){console.error(e);}})();";
-            repairStatusWebView.evaluateJavascript(jsHide, null);
+                    "catch(e){console.error(e);} return 'empty_completed';})();";
             
-            // 실행 시간 계산 및 로그 출력 (빈 데이터 케이스)
-            long endTimeNanos = System.nanoTime();
-            double durationMs = (endTimeNanos - startTimeNanos) / 1_000_000.0;
-            Timber.d("updateRepairStatusWebView() execution time: %.2f ms (empty data)", durationMs);
+            repairStatusWebView.evaluateJavascript(jsHide, new ValueCallback<String>() {
+                @Override
+                public void onReceiveValue(String result) {
+                    // JavaScript 실행 완료 시 호출됨
+                    long endTimeNanos = System.nanoTime();
+                    double durationMs = (endTimeNanos - startTimeNanos) / 1_000_000.0;
+                    Timber.d("updateRepairStatusWebView() JS execution completed: %.2f ms (empty data), result: %s", 
+                            durationMs, result);
+                }
+            });
             
             return;
         }
@@ -304,16 +310,19 @@ public class AddOnBluehands {
             }
         }
         
-        jsBuilder.append("}}catch(e){console.error(e);}})();");
+        jsBuilder.append("}}catch(e){console.error(e);} return 'update_completed';})();");
         
         String js = jsBuilder.toString();
-        repairStatusWebView.evaluateJavascript(js, null);
-        
-        // 실행 시간 계산 및 로그 출력
-        long endTimeNanos = System.nanoTime();
-        double durationMs = (endTimeNanos - startTimeNanos) / 1_000_000.0;
-        Timber.d("updateRepairStatusWebView() execution time: %.2f ms (data count: %d)", 
-                durationMs, carRepairInfoDisplayList.size());
+        repairStatusWebView.evaluateJavascript(js, new ValueCallback<String>() {
+            @Override
+            public void onReceiveValue(String result) {
+                // JavaScript 실행 완료 시 호출됨
+                long endTimeNanos = System.nanoTime();
+                double durationMs = (endTimeNanos - startTimeNanos) / 1_000_000.0;
+                Timber.d("updateRepairStatusWebView() JS execution completed: %.2f ms (data count: %d), result: %s", 
+                        durationMs, carRepairInfoDisplayList.size(), result);
+            }
+        });
     }
 
     private String getStatusClass(CarRepairInfo.RepairStatus status) {
