@@ -455,8 +455,6 @@ public class AddOnBluehands {
         if (currentPageIndex >= totalPages) {
             // 모든 페이지를 다 보여줬으므로 처음부터 다시 시작
             currentPageIndex = 0;
-            sortCarRepairInfoByFinishTime(); // carRepairInfoJobList로부터 다시 정렬
-            Timber.i("All pages shown, restarting cycle with fresh sort. Total pages: %d", totalPages);
         } else {
             Timber.i("Moving to next page: %d/%d", currentPageIndex + 1, totalPages);
         }
