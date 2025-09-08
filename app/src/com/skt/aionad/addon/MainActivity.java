@@ -79,20 +79,14 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
     @Override
     protected void onPause() {
         super.onPause();
-        // AddOnBluehands의 주기적 업데이트 중지
-        if (addOnBluehands != null) {
-            addOnBluehands.stopPeriodicUpdates();
-        }
+
         Timber.d("onPause called");
     }
     
     @Override
     protected void onResume() {
         super.onResume();
-        // AddOnBluehands의 주기적 업데이트 시작
-        if (addOnBluehands != null) {
-            addOnBluehands.startPeriodicUpdates();
-        }
+  
         Timber.d("onResume called");
     }
     
@@ -118,6 +112,11 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
         // AddOnBluehands 초기화
         initializeAddOnBluehands();
         
+        // AddOnBluehands의 주기적 업데이트 시작
+        if (addOnBluehands != null) {
+            addOnBluehands.startPeriodicUpdates();
+        }
+
         Timber.i("onCreate end");
     }
 
@@ -141,6 +140,11 @@ public class MainActivity extends AppCompatActivity implements SurfaceHolder.Cal
 
     @Override
     protected void onDestroy() {
+        // AddOnBluehands의 주기적 업데이트 중지
+        if (addOnBluehands != null) {
+            addOnBluehands.stopPeriodicUpdates();
+        }
+
         // Stop Ktor Server Service
         Intent serverIntent = new Intent(this, KtorServerService.class);
         stopService(serverIntent);

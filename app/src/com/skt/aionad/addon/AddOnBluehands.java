@@ -4,6 +4,7 @@ import android.content.Context;
 import android.graphics.Color;
 import android.os.Handler;
 import android.os.Looper;
+import android.util.Log;
 import android.view.View;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
@@ -172,7 +173,8 @@ public class AddOnBluehands {
      * 주기적 업데이트 시작
      */
     public void startPeriodicUpdates() {
-        // WebView 테이블 갱신: 기존 carRepairInfo interval 사용
+        // WebView 테이블 갱신: 기존 핸들러 정리 후 새로 시작
+        periodicUpdateHandler.removeCallbacks(periodicUpdateRunnable);
         periodicUpdateHandler.postDelayed(periodicUpdateRunnable, ConfigManager.getInstance().getCarRepairInfoDisplayInterval());
         
         // TextView 갱신: monitor 설정에 따라 제어
@@ -234,7 +236,11 @@ public class AddOnBluehands {
     }
 
     private void updateRepairStatusWebView() {
+        // 메서드 실행 시간 측정 시작
+        long startTimeNanos = System.nanoTime();
+        
         if (repairStatusWebView == null) {
+            Timber.e("repairStatusWebView is null");
             return;
         }
 
@@ -248,6 +254,12 @@ public class AddOnBluehands {
                     "var s=r[2].cells[i]; if(s){s.innerHTML=''; s.className='empty';}}}" +
                     "catch(e){console.error(e);}})();";
             repairStatusWebView.evaluateJavascript(jsHide, null);
+            
+            // 실행 시간 계산 및 로그 출력 (빈 데이터 케이스)
+            long endTimeNanos = System.nanoTime();
+            double durationMs = (endTimeNanos - startTimeNanos) / 1_000_000.0;
+            Timber.d("updateRepairStatusWebView() execution time: %.2f ms (empty data)", durationMs);
+            
             return;
         }
 
@@ -296,6 +308,12 @@ public class AddOnBluehands {
         
         String js = jsBuilder.toString();
         repairStatusWebView.evaluateJavascript(js, null);
+        
+        // 실행 시간 계산 및 로그 출력
+        long endTimeNanos = System.nanoTime();
+        double durationMs = (endTimeNanos - startTimeNanos) / 1_000_000.0;
+        Timber.d("updateRepairStatusWebView() execution time: %.2f ms (data count: %d)", 
+                durationMs, carRepairInfoDisplayList.size());
     }
 
     private String getStatusClass(CarRepairInfo.RepairStatus status) {
@@ -453,10 +471,12 @@ public class AddOnBluehands {
         int totalPages = (int) Math.ceil((double) carRepairInfoFinishTimeSortedList.size() / ITEMS_PER_PAGE);
         
         if (currentPageIndex >= totalPages) {
-            // 모든 페이지를 다 보여줬으므로 처음부터 다시 시작
             currentPageIndex = 0;
+            Timber.i("Page cycle completed. Restarting from page 0. Total pages: %d, Data count: %d", 
+                    totalPages, carRepairInfoFinishTimeSortedList.size());
         } else {
-            Timber.i("Moving to next page: %d/%d", currentPageIndex + 1, totalPages);
+            Timber.i("Moving to next page: %d/%d (Data count: %d)", 
+                    currentPageIndex + 1, totalPages, carRepairInfoFinishTimeSortedList.size());
         }
     }
 
