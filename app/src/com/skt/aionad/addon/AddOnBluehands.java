@@ -86,10 +86,8 @@ public class AddOnBluehands {
             
             // 새로운 사이클 시작 시에만 데이터를 새로 로드하고 정렬
             if (currentPageIndex == 0) {
-                // static count를 사용해서 테스트 데이터는 최초 1회만 추가
                 testDataInitCount++;
                 if (testDataInitCount == 1) {
-                    // 테스트 데이터 추가 (실제로는 서버에서 데이터를 받아올 것)
                     addCarRepairInfoForTest();
                     Timber.i("Test data initialized for the first time (count: %d)", testDataInitCount);
                 } else {
@@ -103,15 +101,16 @@ public class AddOnBluehands {
             // 현재 페이지의 아이템들을 DisplayList에 설정
             updateDisplayListForCurrentPage();
 
-            // 화면에 표시
-            if (repairStatusWebView != null) {
-                updateRepairStatusWebView();
-            }
-
             // 다음 페이지 준비
             moveToNextPageOrRestart();
-            
-            periodicUpdateHandler.postDelayed(this, ConfigManager.getInstance().getCarRepairInfoDisplayInterval());
+
+            // 화면에 표시 - JavaScript 완료 후 다음 스케줄링
+            if (repairStatusWebView != null) {
+                updateRepairStatusWebViewWithCallback();
+            } else {
+                // WebView가 없으면 즉시 다음 스케줄링
+                scheduleNextUpdate();
+            }
         }
     };
     
@@ -754,5 +753,103 @@ public class AddOnBluehands {
                 "    </script>" +
                 "</body>" +
                 "</html>";
+    }
+
+    private void updateRepairStatusWebViewWithCallback() {
+        // 메서드 실행 시간 측정 시작
+        long startTimeNanos = System.nanoTime();
+        
+        if (repairStatusWebView == null) {
+            Timber.e("repairStatusWebView is null");
+            scheduleNextUpdate();
+            return;
+        }
+
+        // 데이터가 없으면 테이블을 숨기고 내용 초기화
+        if (carRepairInfoDisplayList.isEmpty()) {
+            String jsHide = "(function(){try{var t=document.querySelector('table');if(!t)return;" +
+                    "t.style.display='none';var r=t.rows;" +
+                    "if(r.length>=3){for(var i=0;i<4;i++){" +
+                    "var h=r[0].cells[i]; if(h){h.textContent=''; h.className='h empty';}" +
+                    "var p=r[1].cells[i]; if(p){p.textContent=''; p.className='empty';}" +
+                    "var s=r[2].cells[i]; if(s){s.innerHTML=''; s.className='empty';}}}" +
+                    "catch(e){console.error(e);} return 'empty_completed';})();";
+            
+            repairStatusWebView.evaluateJavascript(jsHide, new ValueCallback<String>() {
+                @Override
+                public void onReceiveValue(String result) {
+                    long endTimeNanos = System.nanoTime();
+                    double durationMs = (endTimeNanos - startTimeNanos) / 1_000_000.0;
+                    Timber.d("JS execution completed: %.2f ms (empty data), result: %s", durationMs, result);
+                    
+                    // ✅ JavaScript 완료 후 다음 업데이트 스케줄링
+                    scheduleNextUpdate();
+                }
+            });
+            return;
+        }
+
+        StringBuilder jsBuilder = new StringBuilder();
+        jsBuilder.append("(function(){try{var t=document.querySelector('table');if(!t)return;t.style.display='table';var r=t.rows;");
+        jsBuilder.append("if(r.length>=3){");
+
+        // 최대 4개의 컬럼까지 처리 (현재 HTML 테이블 구조에 맞춤)
+        int maxColumns = Math.min(carRepairInfoDisplayList.size(), 4);
+        
+        for (int i = 0; i < 4; i++) { // 항상 4개 열을 모두 처리
+            if (i < carRepairInfoDisplayList.size()) {
+                // 데이터가 있는 경우
+                CarRepairInfo carInfo = carRepairInfoDisplayList.get(i);
+                
+                // 상태에 따른 CSS 클래스 결정
+                String statusClass = getStatusClass(carInfo.getRepairStatus());
+                String statusText = getStatusText(carInfo.getRepairStatus());
+                
+                // 헤더 업데이트 (첫 번째 행)
+                jsBuilder.append(String.format("var h%d=r[0].cells[%d]; h%d.textContent='%s'; h%d.className='h %s';", 
+                        i, i, i, statusText, i, statusClass));
+                
+                // 차량 정보 업데이트 (두 번째 행) - 차량 번호 마스킹 적용
+                String maskedPlate = maskLicensePlate(carInfo.getLicensePlateNumber());
+                String plateAndModel = maskedPlate + " " + carInfo.getCarModel();
+                jsBuilder.append(String.format("var p%d=r[1].cells[%d]; p%d.textContent='%s'; p%d.className='plate';", 
+                        i, i, i, plateAndModel, i));
+                
+                // 상태 정보 업데이트 (세 번째 행)
+                String statusInfo = getStatusInfoText(carInfo);
+                jsBuilder.append(String.format("var s%d=r[2].cells[%d]; s%d.innerHTML='%s'; s%d.className='status';", 
+                        i, i, i, statusInfo, i));
+            } else {
+                // 데이터가 없는 경우 - 빈 열로 설정
+                jsBuilder.append(String.format("var h%d=r[0].cells[%d]; h%d.textContent=''; h%d.className='h empty';", 
+                        i, i, i, i));
+                jsBuilder.append(String.format("var p%d=r[1].cells[%d]; p%d.textContent=''; p%d.className='empty';", 
+                        i, i, i, i));
+                jsBuilder.append(String.format("var s%d=r[2].cells[%d]; s%d.innerHTML=''; s%d.className='empty';", 
+                        i, i, i, i));
+            }
+        }
+        
+        jsBuilder.append("}}catch(e){console.error(e);} return 'update_completed';})();");
+        
+        String js = jsBuilder.toString();
+        repairStatusWebView.evaluateJavascript(js, new ValueCallback<String>() {
+            @Override
+            public void onReceiveValue(String result) {
+                long endTimeNanos = System.nanoTime();
+                double durationMs = (endTimeNanos - startTimeNanos) / 1_000_000.0;
+                Timber.d("JS execution completed: %.2f ms (data count: %d), result: %s", 
+                        durationMs, carRepairInfoDisplayList.size(), result);
+                
+                // ✅ JavaScript 완료 후 다음 업데이트 스케줄링
+                scheduleNextUpdate();
+            }
+        });
+    }
+
+    private void scheduleNextUpdate() {
+        long interval = ConfigManager.getInstance().getCarRepairInfoDisplayInterval();
+        periodicUpdateHandler.postDelayed(periodicUpdateRunnable, interval);
+        Timber.v("⏰ Next update scheduled in %d ms", interval);
     }
 }
