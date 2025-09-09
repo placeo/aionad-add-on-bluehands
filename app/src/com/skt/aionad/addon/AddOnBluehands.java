@@ -145,7 +145,21 @@ public class AddOnBluehands {
             repairStatusWebView.setBackgroundColor(Color.TRANSPARENT);
             repairStatusWebView.setLayerType(View.LAYER_TYPE_SOFTWARE, null);
             repairStatusWebView.getSettings().setJavaScriptEnabled(true);
-            repairStatusWebView.loadUrl("file:///android_asset/bluehands/status_board.html");
+            
+            // ✅ 성능 최적화 설정 추가
+            repairStatusWebView.getSettings().setCacheMode(android.webkit.WebSettings.LOAD_NO_CACHE);
+            repairStatusWebView.getSettings().setRenderPriority(android.webkit.WebSettings.RenderPriority.HIGH);
+            repairStatusWebView.getSettings().setEnableSmoothTransition(true);
+            
+            // ✅ 메모리 최적화 설정
+            repairStatusWebView.getSettings().setDomStorageEnabled(false);
+            repairStatusWebView.getSettings().setDatabaseEnabled(false);
+            
+            repairStatusWebView.clearCache(true);
+            
+            String timestamp = String.valueOf(System.currentTimeMillis());
+            String urlWithCacheBusting = "file:///android_asset/bluehands/status_board.html?v=" + timestamp;
+            repairStatusWebView.loadUrl(urlWithCacheBusting);
         }
 
         if (videoWebView != null) {
@@ -153,6 +167,11 @@ public class AddOnBluehands {
             videoWebView.getSettings().setJavaScriptEnabled(true);
             videoWebView.getSettings().setMediaPlaybackRequiresUserGesture(false); // 자동 재생 허용
             videoWebView.getSettings().setMixedContentMode(android.webkit.WebSettings.MIXED_CONTENT_ALWAYS_ALLOW);
+            
+            // ✅ Cache busting 설정 추가
+            videoWebView.getSettings().setCacheMode(android.webkit.WebSettings.LOAD_NO_CACHE);
+            videoWebView.clearCache(true);
+            
             videoWebView.setBackgroundColor(Color.BLACK);
             
             // WebViewClient 설정 (필요시 로딩 완료 등을 처리)
@@ -162,7 +181,7 @@ public class AddOnBluehands {
             String videoHtml = createVideoHtml();
             videoWebView.loadDataWithBaseURL("file:///android_res/", videoHtml, "text/html", "UTF-8", null);
             
-            Timber.i("Video WebView initialized and video loaded");
+            Timber.i("Video WebView initialized and video loaded with cache busting");
         }
     }
 
@@ -201,6 +220,9 @@ public class AddOnBluehands {
             monitorHandler.removeCallbacks(monitorRunnable);
             Timber.d("Monitor disabled, TextView hidden and updates stopped");
         }
+
+        // ✅ 메모리 모니터링 시작
+        startMemoryMonitoring();
     }
 
     /**
@@ -728,11 +750,17 @@ public class AddOnBluehands {
      * sonyejin01.mp4 파일을 반복 재생하도록 설정
      */
     private String createVideoHtml() {
+        // ✅ 비디오 파일에도 cache busting 타임스탬프 추가
+        String timestamp = String.valueOf(System.currentTimeMillis());
+        
         return "<!DOCTYPE html>" +
                 "<html>" +
                 "<head>" +
                 "    <meta charset='UTF-8'>" +
                 "    <meta name='viewport' content='width=device-width, initial-scale=1.0'>" +
+                "    <meta http-equiv='Cache-Control' content='no-cache, no-store, must-revalidate'>" +
+                "    <meta http-equiv='Pragma' content='no-cache'>" +
+                "    <meta http-equiv='Expires' content='0'>" +
                 "    <style>" +
                 "        body { margin: 0; padding: 0; background-color: black; overflow: hidden; }" +
                 "        video { width: 100%; height: 100%; object-fit: cover; }" +
@@ -740,13 +768,13 @@ public class AddOnBluehands {
                 "</head>" +
                 "<body>" +
                 "    <video id='videoPlayer' autoplay loop muted playsinline controls='false'>" +
-                "        <source src='file:///android_res/raw/sonyejin01.mp4' type='video/mp4'>" +
+                "        <source src='file:///android_res/raw/sonyejin01.mp4?v=" + timestamp + "' type='video/mp4'>" +
                 "        비디오를 재생할 수 없습니다." +
                 "    </video>" +
                 "    <script>" +
                 "        const video = document.getElementById('videoPlayer');" +
                 "        video.addEventListener('loadeddata', function() {" +
-                "            console.log('Video loaded successfully');" +
+                "            console.log('Video loaded successfully with timestamp: " + timestamp + "');" +
                 "            video.play().catch(e => console.error('Play failed:', e));" +
                 "        });" +
                 "        video.addEventListener('error', function(e) {" +
@@ -775,11 +803,143 @@ public class AddOnBluehands {
         }
 
         try {
-            updateRepairStatusWebView();
-            Timber.i("✅ updateRepairStatusWebView completed successfully for page %d", currentPageIndex);
+            // ✅ JavaScript 실행 완료를 기다린 후 다음 단계 진행
+            updateRepairStatusWebViewWithSync();
         } catch (Exception e) {
             Timber.e(e, "❌ Error in updateRepairStatusWebView");
+            // 오류 발생 시에만 바로 다음 단계 진행
+            moveToNextPageOrRestart();
+            scheduleNextUpdate();
         }
+    }
+
+    // ✅ 동기화된 WebView 업데이트 메서드
+    private void updateRepairStatusWebViewWithSync() {
+        long startTimeNanos = System.nanoTime();
+        
+        // ✅ 항상 먼저 테이블을 완전히 초기화 (동기화 문제 해결)
+        String jsInitialize = "(function(){try{" +
+                "var t=document.querySelector('table');if(!t)return;" +
+                "var r=t.rows;" +
+                "if(r.length>=3){" +
+                "for(var i=0;i<4;i++){" +
+                "var h=r[0].cells[i]; if(h){h.textContent=''; h.className='h empty';}" +
+                "var p=r[1].cells[i]; if(p){p.textContent=''; p.className='empty';}" +
+                "var s=r[2].cells[i]; if(s){s.innerHTML=''; s.className='empty';}}" +
+                "}" +
+                "}catch(e){console.error('Table initialization error:', e);} " +
+                "return 'table_initialized';})();";
+        
+        // 데이터가 없으면 테이블을 숨기고 초기화만 수행
+        if (carRepairInfoDisplayList.isEmpty()) {
+            String jsHide = jsInitialize.replace("return 'table_initialized';", 
+                    "t.style.display='none'; return 'empty_completed';");
+            
+            repairStatusWebView.evaluateJavascript(jsHide, new ValueCallback<String>() {
+                @Override
+                public void onReceiveValue(String result) {
+                    long endTimeNanos = System.nanoTime();
+                    double durationMs = (endTimeNanos - startTimeNanos) / 1_000_000.0;
+                    Timber.d("🔄 WebView table cleared and hidden: %.2f ms, result: %s", 
+                            durationMs, result);
+                    
+                    // ✅ JavaScript 완료 후 다음 단계 진행
+                    onWebViewUpdateCompleted();
+                }
+            });
+            return;
+        }
+
+        // ✅ 데이터가 있으면: 1) 초기화 -> 2) 데이터 채우기 (2단계로 분리)
+        repairStatusWebView.evaluateJavascript(jsInitialize, new ValueCallback<String>() {
+            @Override
+            public void onReceiveValue(String initResult) {
+                Timber.v("🧹 Table initialized, now filling data...");
+                
+                // 2단계: 실제 데이터로 테이블 채우기
+                fillTableWithDataSync(startTimeNanos);
+            }
+        });
+    }
+
+    // ✅ 동기화된 테이블 데이터 채우기
+    private void fillTableWithDataSync(long startTimeNanos) {
+        StringBuilder jsBuilder = new StringBuilder();
+        jsBuilder.append("(function(){try{" +
+                "var t=document.querySelector('table');if(!t)return;" +
+                "t.style.display='table';" +
+                "var r=t.rows;" +
+                "if(r.length>=3){");
+
+        // 최대 4개의 컬럼까지 처리
+        for (int i = 0; i < 4; i++) {
+            if (i < carRepairInfoDisplayList.size()) {
+                // 데이터가 있는 경우
+                CarRepairInfo carInfo = carRepairInfoDisplayList.get(i);
+                
+                // 상태에 따른 CSS 클래스 결정
+                String statusClass = getStatusClass(carInfo.getRepairStatus());
+                String statusText = getStatusText(carInfo.getRepairStatus());
+                
+                // 헤더 업데이트 (첫 번째 행)
+                jsBuilder.append(String.format("var h%d=r[0].cells[%d]; if(h%d){h%d.textContent='%s'; h%d.className='h %s';}", 
+                        i, i, i, i, statusText, i, statusClass));
+                
+                // 차량 정보 업데이트 (두 번째 행) - 차량 번호 마스킹 적용
+                String maskedPlate = maskLicensePlate(carInfo.getLicensePlateNumber());
+                String plateAndModel = maskedPlate + " " + carInfo.getCarModel();
+                jsBuilder.append(String.format("var p%d=r[1].cells[%d]; if(p%d){p%d.textContent='%s'; p%d.className='plate';}", 
+                        i, i, i, i, plateAndModel, i));
+                
+                // 상태 정보 업데이트 (세 번째 행)
+                String statusInfo = getStatusInfoText(carInfo);
+                jsBuilder.append(String.format("var s%d=r[2].cells[%d]; if(s%d){s%d.innerHTML='%s'; s%d.className='status';}", 
+                        i, i, i, i, statusInfo, i));
+            }
+        }
+        
+        // ✅ 실제 DOM 렌더링 완료 확인을 위한 추가 코드
+        jsBuilder.append("}" +
+                // DOM 업데이트 후 실제 화면 상태 확인
+                "setTimeout(function(){" +
+                "var displayState = t.style.display;" +
+                "var visibleCells = 0;" +
+                "for(var i=0; i<4; i++){" +
+                "if(r[1].cells[i] && r[1].cells[i].textContent.trim() !== '') visibleCells++;" +
+                "}" +
+                "console.log('Display synchronized - table:', displayState, 'visible cells:', visibleCells);" +
+                "}, 10);" +
+                "}catch(e){console.error('Table fill error:', e);} " +
+                "return 'update_completed';})();");
+        
+        String js = jsBuilder.toString();
+        repairStatusWebView.evaluateJavascript(js, new ValueCallback<String>() {
+            @Override
+            public void onReceiveValue(String result) {
+                long endTimeNanos = System.nanoTime();
+                double durationMs = (endTimeNanos - startTimeNanos) / 1_000_000.0;
+                Timber.d("✅ WebView table updated: %.2f ms (data count: %d), result: %s", 
+                        durationMs, carRepairInfoDisplayList.size(), result);
+                
+                // ✅ 추가 동기화 확인 후 다음 단계 진행
+                Handler syncHandler = new Handler(Looper.getMainLooper());
+                syncHandler.postDelayed(() -> {
+                    Timber.i("🎯 Display synchronization completed for page %d", currentPageIndex);
+                    onWebViewUpdateCompleted();
+                }, 50); // 50ms 추가 대기로 DOM 렌더링 완료 보장
+            }
+        });
+    }
+
+    // ✅ WebView 업데이트 완료 후 처리 (메모리 관리 포함)
+    private void onWebViewUpdateCompleted() {
+        // ✅ 경량 메모리 정리 수행
+        performLightweightMemoryCleanup();
+        
+        // ✅ 주기적 완전 메모리 재설정 확인
+        performJavaScriptMemoryReset();
+        
+        Timber.i("✅ WebView update completed successfully for page %d", currentPageIndex);
         
         // ✅ 화면 표시 완료 후 다음 페이지 준비
         moveToNextPageOrRestart();
@@ -787,10 +947,183 @@ public class AddOnBluehands {
         // 다음 업데이트 스케줄링
         scheduleNextUpdate();
     }
-
+        
     private void scheduleNextUpdate() {
         long interval = ConfigManager.getInstance().getCarRepairInfoDisplayInterval();
         periodicUpdateHandler.postDelayed(periodicUpdateRunnable, interval);
         Timber.v("⏰ Next update scheduled in %d ms", interval);
+    }
+
+    // ✅ 매 업데이트마다 실행되는 경량 메모리 정리
+    private void performLightweightMemoryCleanup() {
+        if (repairStatusWebView != null) {
+            String jsLightCleanup = "(function(){" +
+                    "try{" +
+                    // DOM 이벤트 정리
+                    "var tables = document.querySelectorAll('table');" +
+                    "for(var i=0; i<tables.length; i++){" +
+                    "tables[i].onchange = null;" +
+                    "tables[i].onclick = null;" +
+                    "}" +
+                    // 임시 변수 정리
+                    "if(window.tempVars) { window.tempVars = null; }" +
+                    "if(window.tempData) { window.tempData = null; }" +
+                    // 마이크로 가비지 컬렉션
+                    "if(window.gc) { setTimeout(function(){ window.gc(); }, 10); }" +
+                    "return 'light_cleanup_done';" +
+                    "}catch(e){ return 'light_cleanup_error'; }" +
+                    "})();";
+            
+            repairStatusWebView.evaluateJavascript(jsLightCleanup, null);
+        }
+    }
+
+    // ✅ 클래스 레벨에 메모리 관리 변수 추가
+    private int jsMemoryResetCounter = 0;
+    private static final int JS_MEMORY_RESET_INTERVAL = 50; // 50회마다 완전 초기화
+
+    // ✅ JavaScript 메모리 완전 초기화 메서드
+    private void performJavaScriptMemoryReset() {
+        jsMemoryResetCounter++;
+        
+        if (jsMemoryResetCounter >= JS_MEMORY_RESET_INTERVAL) {
+            jsMemoryResetCounter = 0;
+            
+            if (repairStatusWebView != null) {
+                Timber.w("🔄 Performing complete JavaScript memory reset (cycle: %d)", jsMemoryResetCounter);
+                
+                // ✅ 1단계: JavaScript 컨텍스트 완전 정리
+                String jsMemoryCleanup = "(function(){" +
+                        "try{" +
+                        // 모든 전역 변수 정리
+                        "for(var prop in window) {" +
+                        "if(window.hasOwnProperty(prop) && prop !== 'location' && prop !== 'document') {" +
+                        "try { delete window[prop]; } catch(e) {}" +
+                        "}" +
+                        "}" +
+                        // 이벤트 리스너 정리
+                        "var elements = document.querySelectorAll('*');" +
+                        "for(var i=0; i<elements.length; i++){" +
+                        "elements[i].removeAttribute('onclick');" +
+                        "elements[i].removeAttribute('onload');" +
+                        "}" +
+                        // 타이머 정리
+                        "var id = window.setTimeout(function(){}, 0);" +
+                        "while(id--) { window.clearTimeout(id); }" +
+                        "id = window.setInterval(function(){}, 0);" +
+                        "while(id--) { window.clearInterval(id); }" +
+                        // 강제 가비지 컬렉션
+                        "if(window.gc) window.gc();" +
+                        "if(window.CollectGarbage) window.CollectGarbage();" +
+                        "console.log('JavaScript memory fully cleaned');" +
+                        "return 'memory_cleaned';" +
+                        "}catch(e){" +
+                        "console.error('Memory cleanup error:', e);" +
+                        "return 'cleanup_error';" +
+                        "}})();";
+                
+                repairStatusWebView.evaluateJavascript(jsMemoryCleanup, new ValueCallback<String>() {
+                    @Override
+                    public void onReceiveValue(String result) {
+                        Timber.d("🧹 JavaScript memory cleanup result: %s", result);
+                        
+                        // ✅ 2단계: WebView 캐시 완전 정리
+                        Handler memoryHandler = new Handler(Looper.getMainLooper());
+                        memoryHandler.postDelayed(() -> {
+                            performWebViewCompleteReset();
+                        }, 100);
+                    }
+                });
+            }
+        }
+    }
+
+    // ✅ WebView 완전 재설정
+    private void performWebViewCompleteReset() {
+        if (repairStatusWebView != null) {
+            Timber.i("🔄 Performing complete WebView reset");
+            
+            // ✅ 캐시 및 히스토리 완전 정리
+            repairStatusWebView.clearCache(true);
+            repairStatusWebView.clearHistory();
+            repairStatusWebView.clearFormData();
+            repairStatusWebView.clearMatches();
+            repairStatusWebView.clearSslPreferences();
+            
+            // ✅ WebView 설정 재초기화
+            android.webkit.WebSettings settings = repairStatusWebView.getSettings();
+            settings.setCacheMode(android.webkit.WebSettings.LOAD_NO_CACHE);
+            settings.setDomStorageEnabled(false);
+            settings.setDatabaseEnabled(false);
+            
+            
+            // ✅ HTML 파일 완전 재로드
+            Handler reloadHandler = new Handler(Looper.getMainLooper());
+            reloadHandler.postDelayed(() -> {
+                String timestamp = String.valueOf(System.currentTimeMillis());
+                String urlWithCacheBusting = "file:///android_asset/bluehands/status_board.html?v=" + timestamp;
+                repairStatusWebView.loadUrl(urlWithCacheBusting);
+                
+                Timber.i("✅ WebView completely reset and reloaded");
+            }, 200);
+        }
+    }
+
+    // ✅ 앱 메모리 상태 모니터링 및 관리
+    private void checkAndHandleMemoryPressure() {
+        // 런타임 메모리 상태 확인
+        Runtime runtime = Runtime.getRuntime();
+        long maxMemory = runtime.maxMemory();
+        long totalMemory = runtime.totalMemory();
+        long freeMemory = runtime.freeMemory();
+        long usedMemory = totalMemory - freeMemory;
+        
+        double memoryUsagePercent = (double) usedMemory / maxMemory * 100;
+        
+        if (memoryUsagePercent > 80) { // 메모리 사용률 80% 초과 시
+            Timber.w("⚠️ High memory usage detected: %.1f%% - triggering emergency cleanup", memoryUsagePercent);
+            
+            // 긴급 메모리 정리
+            performEmergencyMemoryCleanup();
+        }
+        
+        Timber.v("📊 Memory usage: %.1f%% (Used: %dMB / Max: %dMB)", 
+                memoryUsagePercent, usedMemory / (1024 * 1024), maxMemory / (1024 * 1024));
+    }
+
+    // ✅ 긴급 메모리 정리
+    private void performEmergencyMemoryCleanup() {
+        if (repairStatusWebView != null) {
+            // 즉시 JavaScript 메모리 정리
+            String emergencyCleanup = "(function(){" +
+                    "document.body.innerHTML = '';" + // DOM 완전 정리
+                    "if(window.gc) window.gc();" +
+                    "return 'emergency_cleaned';" +
+                    "})();";
+            
+            repairStatusWebView.evaluateJavascript(emergencyCleanup, result -> {
+                // 시스템 가비지 컬렉션 요청
+                System.gc();
+                
+                // WebView 완전 재로드
+                Handler emergencyHandler = new Handler(Looper.getMainLooper());
+                emergencyHandler.postDelayed(() -> {
+                    performWebViewCompleteReset();
+                }, 500);
+            });
+        }
+    }
+
+    // ✅ startPeriodicUpdates에 메모리 모니터링 추가
+    private void startMemoryMonitoring() {
+        Handler memoryMonitorHandler = new Handler(Looper.getMainLooper());
+        Runnable memoryMonitorRunnable = new Runnable() {
+            @Override
+            public void run() {
+                checkAndHandleMemoryPressure();
+                memoryMonitorHandler.postDelayed(this, 30000); // 30초마다 메모리 체크
+            }
+        };
+        memoryMonitorHandler.post(memoryMonitorRunnable);
     }
 }
