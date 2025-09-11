@@ -5,6 +5,7 @@ import io.ktor.server.application.*
 import io.ktor.server.cio.*
 import io.ktor.server.engine.*
 import io.ktor.server.plugins.contentnegotiation.*
+import io.ktor.server.plugins.cors.routing.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
@@ -50,6 +51,17 @@ fun Application.module(addOnBluehands: AddOnBluehands?) {
             isLenient = true
             ignoreUnknownKeys = true
         })
+    }
+    
+    // CORS 설정 추가
+    install(CORS) {
+        anyHost() // 모든 호스트 허용 (개발용)
+        allowHeader(HttpHeaders.ContentType)
+        allowMethod(HttpMethod.Get)
+        allowMethod(HttpMethod.Post)
+        allowMethod(HttpMethod.Put)
+        allowMethod(HttpMethod.Delete)
+        allowMethod(HttpMethod.Options)
     }
 
     routing {

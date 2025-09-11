@@ -1,0 +1,757 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>차량 수리 관리 시스템</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(45deg, #4CAF50, #45a049);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .server-config {
+            background: #f8f9fa;
+            padding: 20px;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .config-row {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        .config-row label {
+            font-weight: bold;
+            min-width: 100px;
+        }
+
+        .config-row input {
+            flex: 1;
+            padding: 10px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 16px;
+        }
+
+        .main-content {
+            padding: 30px;
+        }
+
+        .section {
+            margin-bottom: 40px;
+            padding: 25px;
+            border: 2px solid #e9ecef;
+            border-radius: 12px;
+            background: #f8f9fa;
+        }
+
+        .section h2 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 1.8em;
+            border-bottom: 3px solid #4CAF50;
+            padding-bottom: 10px;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .form-group label {
+            font-weight: bold;
+            margin-bottom: 5px;
+            color: #555;
+        }
+
+        .form-group input, .form-group select {
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+
+        .form-group input:focus, .form-group select:focus {
+            outline: none;
+            border-color: #4CAF50;
+        }
+
+        .btn {
+            padding: 12px 25px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin: 5px;
+        }
+
+        .btn-primary {
+            background: #4CAF50;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #45a049;
+            transform: translateY(-2px);
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #5a6268;
+        }
+
+        .btn-danger {
+            background: #dc3545;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #c82333;
+        }
+
+        .btn-info {
+            background: #17a2b8;
+            color: white;
+        }
+
+        .btn-info:hover {
+            background: #138496;
+        }
+
+        .response-area {
+            margin-top: 20px;
+            padding: 20px;
+            background: #1e1e1e;
+            color: #00ff00;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            max-height: 400px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+        }
+
+        .car-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .car-item {
+            background: white;
+            border: 2px solid #ddd;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s;
+        }
+
+        .car-item:hover {
+            transform: translateY(-5px);
+        }
+
+        .car-item h3 {
+            color: #4CAF50;
+            margin-bottom: 10px;
+            font-size: 1.3em;
+        }
+
+        .car-status {
+            display: inline-block;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+
+        .status-in-progress {
+            background: #ffeaa7;
+            color: #2d3436;
+        }
+
+        .status-completed {
+            background: #00b894;
+            color: white;
+        }
+
+        .status-final-inspection {
+            background: #fdcb6e;
+            color: #2d3436;
+        }
+
+        .quick-actions {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 20px;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            color: #6c757d;
+            font-style: italic;
+        }
+
+        @media (max-width: 768px) {
+            .form-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .config-row {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            .config-row label {
+                min-width: auto;
+                margin-bottom: 5px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🚗 차량 수리 관리 시스템</h1>
+            <p>실시간 차량 수리 현황 관리 웹 클라이언트</p>
+        </div>
+
+        <div class="server-config">
+            <div class="config-row">
+                <label>서버 IP:</label>
+                <input type="text" id="serverIp" value="172.23.249.90" placeholder="서버 IP 주소">
+            </div>
+            <div class="config-row">
+                <label>포트:</label>
+                <input type="number" id="serverPort" value="8080" placeholder="포트 번호">
+            </div>
+        </div>
+
+        <div class="main-content">
+            <!-- 전체 목록 조회 섹션 -->
+            <div class="section">
+                <h2>📋 전체 차량 목록 조회</h2>
+                <div class="quick-actions">
+                    <button class="btn btn-info" onclick="getAllCarRepairInfo()">전체 목록 새로고침</button>
+                    <button class="btn btn-secondary" onclick="clearResponse()">화면 지우기</button>
+                </div>
+                <div class="loading" id="loadingAll">데이터를 불러오는 중...</div>
+                <div class="car-list" id="carList"></div>
+            </div>
+
+            <!-- 차량 정보 추가 섹션 -->
+            <div class="section">
+                <h2>➕ 새 차량 수리 정보 추가</h2>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>차량 번호</label>
+                        <input type="text" id="addPlateNumber" placeholder="예: 12가1234">
+                    </div>
+                    <div class="form-group">
+                        <label>차량 모델</label>
+                        <input type="text" id="addCarModel" placeholder="예: 소나타">
+                    </div>
+                    <div class="form-group">
+                        <label>수리 상태</label>
+                        <select id="addRepairStatus">
+                            <option value="IN_PROGRESS">수리 중</option>
+                            <option value="FINAL_INSPECTION">최종 점검</option>
+                            <option value="COMPLETED">완료</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>완료 예정 시간</label>
+                        <input type="time" id="addFinishTime">
+                    </div>
+                </div>
+                <button class="btn btn-primary" onclick="addCarRepairInfo()">차량 정보 추가</button>
+            </div>
+
+            <!-- 특정 차량 조회 섹션 -->
+            <div class="section">
+                <h2>🔍 특정 차량 조회</h2>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>차량 번호</label>
+                        <input type="text" id="searchPlateNumber" placeholder="조회할 차량 번호">
+                    </div>
+                </div>
+                <button class="btn btn-info" onclick="getCarRepairInfo()">차량 조회</button>
+            </div>
+
+            <!-- 차량 정보 수정 섹션 -->
+            <div class="section">
+                <h2>✏️ 차량 정보 수정</h2>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>차량 번호</label>
+                        <input type="text" id="updatePlateNumber" placeholder="수정할 차량 번호">
+                    </div>
+                    <div class="form-group">
+                        <label>차량 모델</label>
+                        <input type="text" id="updateCarModel" placeholder="새 차량 모델">
+                    </div>
+                    <div class="form-group">
+                        <label>수리 상태</label>
+                        <select id="updateRepairStatus">
+                            <option value="IN_PROGRESS">수리 중</option>
+                            <option value="FINAL_INSPECTION">최종 점검</option>
+                            <option value="COMPLETED">완료</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>완료 예정 시간</label>
+                        <input type="time" id="updateFinishTime">
+                    </div>
+                </div>
+                <button class="btn btn-primary" onclick="updateCarRepairInfo()">차량 정보 수정</button>
+            </div>
+
+            <!-- 차량 정보 삭제 섹션 -->
+            <div class="section">
+                <h2>🗑️ 차량 정보 삭제</h2>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>차량 번호</label>
+                        <input type="text" id="deletePlateNumber" placeholder="삭제할 차량 번호">
+                    </div>
+                </div>
+                <button class="btn btn-danger" onclick="deleteCarRepairInfo()">차량 정보 삭제</button>
+            </div>
+
+            <!-- 테스트 데이터 추가 섹션 -->
+            <div class="section">
+                <h2>🧪 테스트 데이터 일괄 추가</h2>
+                <p>http-server.sh와 동일한 테스트 데이터를 일괄로 추가합니다.</p>
+                <div class="quick-actions">
+                    <button class="btn btn-primary" onclick="addTestData()">테스트 데이터 추가</button>
+                    <button class="btn btn-secondary" onclick="testQueries()">테스트 조회 실행</button>
+                    <button class="btn btn-primary" onclick="testUpdates()">테스트 수정 실행</button>
+                    <button class="btn btn-danger" onclick="testDeletes()">테스트 삭제 실행</button>
+                </div>
+            </div>
+
+            <!-- 응답 로그 섹션 -->
+            <div class="section">
+                <h2>📋 API 응답 로그</h2>
+                <div class="response-area" id="responseArea">여기에 API 응답이 표시됩니다...</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 서버 URL 구성
+        function getServerUrl() {
+            const ip = document.getElementById('serverIp').value || '172.23.249.90';
+            const port = document.getElementById('serverPort').value || '8080';
+            return `http://${ip}:${port}`;
+        }
+
+        // 응답 로그 출력
+        function logResponse(method, url, response, isError = false) {
+            const responseArea = document.getElementById('responseArea');
+            const timestamp = new Date().toLocaleTimeString();
+            const status = isError ? '❌ ERROR' : '✅ SUCCESS';
+            
+            const logEntry = `[${timestamp}] ${status} ${method} ${url}\n${JSON.stringify(response, null, 2)}\n\n`;
+            responseArea.textContent = logEntry + responseArea.textContent;
+        }
+
+        // 응답 화면 지우기
+        function clearResponse() {
+            document.getElementById('responseArea').textContent = '여기에 API 응답이 표시됩니다...';
+        }
+
+        // 로딩 표시
+        function showLoading(elementId, show = true) {
+            const element = document.getElementById(elementId);
+            element.style.display = show ? 'block' : 'none';
+        }
+
+        // 전체 차량 목록 조회
+        async function getAllCarRepairInfo() {
+            showLoading('loadingAll', true);
+            try {
+                const response = await fetch(`${getServerUrl()}/api/car-repair`);
+                const data = await response.json();
+                
+                logResponse('GET', '/api/car-repair', data);
+                
+                if (data.success && data.data) {
+                    displayCarList(data.data);
+                } else {
+                    displayCarList([]);
+                }
+            } catch (error) {
+                logResponse('GET', '/api/car-repair', { error: error.message }, true);
+                displayCarList([]);
+            } finally {
+                showLoading('loadingAll', false);
+            }
+        }
+
+        // 차량 목록 화면에 표시
+        function displayCarList(cars) {
+            const carList = document.getElementById('carList');
+            
+            if (!cars || cars.length === 0) {
+                carList.innerHTML = '<p style="text-align: center; color: #6c757d; grid-column: 1/-1;">등록된 차량이 없습니다.</p>';
+                return;
+            }
+
+            carList.innerHTML = cars.map(car => `
+                <div class="car-item">
+                    <h3>${car.licensePlateNumber}</h3>
+                    <p><strong>모델:</strong> ${car.carModel}</p>
+                    <p><strong>상태:</strong> <span class="car-status status-${car.repairStatus.toLowerCase().replace('_', '-')}">${getStatusText(car.repairStatus)}</span></p>
+                    <p><strong>완료 예정:</strong> ${car.estimatedFinishTime || '미정'}</p>
+                    <div style="margin-top: 15px;">
+                        <button class="btn btn-info" style="font-size: 12px; padding: 5px 10px;" onclick="fillUpdateForm('${car.licensePlateNumber}', '${car.carModel}', '${car.repairStatus}', '${car.estimatedFinishTime || ''}')">수정</button>
+                        <button class="btn btn-danger" style="font-size: 12px; padding: 5px 10px;" onclick="quickDelete('${car.licensePlateNumber}')">삭제</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // 상태 텍스트 변환
+        function getStatusText(status) {
+            const statusMap = {
+                'IN_PROGRESS': '수리 중',
+                'FINAL_INSPECTION': '최종 점검',
+                'COMPLETED': '완료'
+            };
+            return statusMap[status] || status;
+        }
+
+        // 수정 폼 자동 채우기
+        function fillUpdateForm(plateNumber, carModel, repairStatus, finishTime) {
+            document.getElementById('updatePlateNumber').value = plateNumber;
+            document.getElementById('updateCarModel').value = carModel;
+            document.getElementById('updateRepairStatus').value = repairStatus;
+            document.getElementById('updateFinishTime').value = finishTime;
+            
+            // 수정 섹션으로 스크롤
+            document.querySelector('h2:nth-of-type(4)').scrollIntoView({ behavior: 'smooth' });
+        }
+
+        // 빠른 삭제
+        async function quickDelete(plateNumber) {
+            if (confirm(`정말로 차량 "${plateNumber}"을 삭제하시겠습니까?`)) {
+                document.getElementById('deletePlateNumber').value = plateNumber;
+                await deleteCarRepairInfo();
+                await getAllCarRepairInfo(); // 목록 새로고침
+            }
+        }
+
+        // 새 차량 정보 추가
+        async function addCarRepairInfo() {
+            const plateNumber = document.getElementById('addPlateNumber').value;
+            const carModel = document.getElementById('addCarModel').value;
+            const repairStatus = document.getElementById('addRepairStatus').value;
+            const finishTime = document.getElementById('addFinishTime').value;
+
+            if (!plateNumber || !carModel) {
+                alert('차량 번호와 모델은 필수입니다.');
+                return;
+            }
+
+            const data = {
+                licensePlateNumber: plateNumber,
+                carModel: carModel,
+                repairStatus: repairStatus,
+                estimatedFinishTime: repairStatus === 'COMPLETED' ? null : finishTime
+            };
+
+            try {
+                const response = await fetch(`${getServerUrl()}/api/car-repair`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+                const result = await response.json();
+                
+                logResponse('POST', '/api/car-repair', result);
+                
+                if (result.success) {
+                    // 폼 초기화
+                    document.getElementById('addPlateNumber').value = '';
+                    document.getElementById('addCarModel').value = '';
+                    document.getElementById('addFinishTime').value = '';
+                    
+                    // 목록 새로고침
+                    getAllCarRepairInfo();
+                }
+            } catch (error) {
+                logResponse('POST', '/api/car-repair', { error: error.message }, true);
+            }
+        }
+
+        // 특정 차량 조회
+        async function getCarRepairInfo() {
+            const plateNumber = document.getElementById('searchPlateNumber').value;
+            
+            if (!plateNumber) {
+                alert('차량 번호를 입력하세요.');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${getServerUrl()}/api/car-repair/${encodeURIComponent(plateNumber)}`);
+                const data = await response.json();
+                
+                logResponse('GET', `/api/car-repair/${plateNumber}`, data);
+            } catch (error) {
+                logResponse('GET', `/api/car-repair/${plateNumber}`, { error: error.message }, true);
+            }
+        }
+
+        // 차량 정보 수정
+        async function updateCarRepairInfo() {
+            const plateNumber = document.getElementById('updatePlateNumber').value;
+            const carModel = document.getElementById('updateCarModel').value;
+            const repairStatus = document.getElementById('updateRepairStatus').value;
+            const finishTime = document.getElementById('updateFinishTime').value;
+
+            if (!plateNumber) {
+                alert('차량 번호를 입력하세요.');
+                return;
+            }
+
+            const data = {
+                carModel: carModel,
+                repairStatus: repairStatus,
+                estimatedFinishTime: repairStatus === 'COMPLETED' ? null : finishTime
+            };
+
+            try {
+                const response = await fetch(`${getServerUrl()}/api/car-repair/${encodeURIComponent(plateNumber)}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+                const result = await response.json();
+                
+                logResponse('PUT', `/api/car-repair/${plateNumber}`, result);
+                
+                if (result.success) {
+                    // 목록 새로고침
+                    getAllCarRepairInfo();
+                }
+            } catch (error) {
+                logResponse('PUT', `/api/car-repair/${plateNumber}`, { error: error.message }, true);
+            }
+        }
+
+        // 차량 정보 삭제
+        async function deleteCarRepairInfo() {
+            const plateNumber = document.getElementById('deletePlateNumber').value;
+            
+            if (!plateNumber) {
+                alert('차량 번호를 입력하세요.');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${getServerUrl()}/api/car-repair/${encodeURIComponent(plateNumber)}`, {
+                    method: 'DELETE'
+                });
+                const data = await response.json();
+                
+                logResponse('DELETE', `/api/car-repair/${plateNumber}`, data);
+                
+                if (data.success) {
+                    document.getElementById('deletePlateNumber').value = '';
+                    // 목록 새로고침
+                    getAllCarRepairInfo();
+                }
+            } catch (error) {
+                logResponse('DELETE', `/api/car-repair/${plateNumber}`, { error: error.message }, true);
+            }
+        }
+
+        // 테스트 데이터 추가 (http-server.sh와 동일)
+        async function addTestData() {
+            const testCars = [
+                {
+                    licensePlateNumber: "0012파0012",
+                    carModel: "소나타",
+                    repairStatus: "IN_PROGRESS",
+                    estimatedFinishTime: "14:30:00"
+                },
+                {
+                    licensePlateNumber: "0015타0015",
+                    carModel: "X5",
+                    repairStatus: "IN_PROGRESS",
+                    estimatedFinishTime: "18:30:00"
+                },
+                {
+                    licensePlateNumber: "0016하0016",
+                    carModel: "르망",
+                    repairStatus: "FINAL_INSPECTION",
+                    estimatedFinishTime: "18:00:00"
+                },
+                {
+                    licensePlateNumber: "0017보0017",
+                    carModel: "E500",
+                    repairStatus: "FINAL_INSPECTION",
+                    estimatedFinishTime: "17:00:00"
+                }
+            ];
+
+            for (const car of testCars) {
+                try {
+                    const response = await fetch(`${getServerUrl()}/api/car-repair`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(car)
+                    });
+                    const result = await response.json();
+                    logResponse('POST', '/api/car-repair', result);
+                    
+                    // 각 요청 사이에 잠시 대기
+                    await new Promise(resolve => setTimeout(resolve, 100));
+                } catch (error) {
+                    logResponse('POST', '/api/car-repair', { error: error.message }, true);
+                }
+            }
+            
+            // 목록 새로고침
+            getAllCarRepairInfo();
+        }
+
+        // 테스트 조회
+        async function testQueries() {
+            const testPlates = ["004라444", "007사777"];
+            
+            for (const plate of testPlates) {
+                try {
+                    const response = await fetch(`${getServerUrl()}/api/car-repair/${encodeURIComponent(plate)}`);
+                    const data = await response.json();
+                    logResponse('GET', `/api/car-repair/${plate}`, data);
+                    
+                    await new Promise(resolve => setTimeout(resolve, 100));
+                } catch (error) {
+                    logResponse('GET', `/api/car-repair/${plate}`, { error: error.message }, true);
+                }
+            }
+        }
+
+        // 테스트 수정
+        async function testUpdates() {
+            const updates = [
+                {
+                    plate: "0012파0012",
+                    data: {
+                        carModel: "소나타",
+                        repairStatus: "COMPLETED",
+                        estimatedFinishTime: null
+                    }
+                },
+                {
+                    plate: "0010차100",
+                    data: {
+                        carModel: "소나타",
+                        repairStatus: "IN_PROGRESS",
+                        estimatedFinishTime: "16:15:00"
+                    }
+                }
+            ];
+
+            for (const update of updates) {
+                try {
+                    const response = await fetch(`${getServerUrl()}/api/car-repair/${encodeURIComponent(update.plate)}`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(update.data)
+                    });
+                    const result = await response.json();
+                    logResponse('PUT', `/api/car-repair/${update.plate}`, result);
+                    
+                    await new Promise(resolve => setTimeout(resolve, 100));
+                } catch (error) {
+                    logResponse('PUT', `/api/car-repair/${update.plate}`, { error: error.message }, true);
+                }
+            }
+            
+            // 목록 새로고침
+            getAllCarRepairInfo();
+        }
+
+        // 테스트 삭제
+        async function testDeletes() {
+            const testPlates = ["005마555", "003다333", "002나222"];
+            
+            for (const plate of testPlates) {
+                try {
+                    const response = await fetch(`${getServerUrl()}/api/car-repair/${encodeURIComponent(plate)}`, {
+                        method: 'DELETE'
+                    });
+                    const data = await response.json();
+                    logResponse('DELETE', `/api/car-repair/${plate}`, data);
+                    
+                    await new Promise(resolve => setTimeout(resolve, 100));
+                } catch (error) {
+                    logResponse('DELETE', `/api/car-repair/${plate}`, { error: error.message }, true);
+                }
+            }
+            
+            // 목록 새로고침
+            getAllCarRepairInfo();
+        }
+
+        // 페이지 로드 시 전체 목록 조회
+        window.addEventListener('load', function() {
+            getAllCarRepairInfo();
+        });
+    </script>
+</body>
+</html>
