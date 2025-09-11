@@ -143,23 +143,16 @@ public class AddOnBluehands {
     private void setupWebViews() {
         if (repairStatusWebView != null) {
             repairStatusWebView.setBackgroundColor(Color.TRANSPARENT);
-            repairStatusWebView.setLayerType(View.LAYER_TYPE_SOFTWARE, null);
             repairStatusWebView.getSettings().setJavaScriptEnabled(true);
             
-            // ✅ 성능 최적화 설정 추가
+            // ✅ 현재 지원되는 설정만 사용
             repairStatusWebView.getSettings().setCacheMode(android.webkit.WebSettings.LOAD_NO_CACHE);
-            repairStatusWebView.getSettings().setRenderPriority(android.webkit.WebSettings.RenderPriority.HIGH);
-            repairStatusWebView.getSettings().setEnableSmoothTransition(true);
-            
-            // ✅ 메모리 최적화 설정
             repairStatusWebView.getSettings().setDomStorageEnabled(false);
-            repairStatusWebView.getSettings().setDatabaseEnabled(false);
             
-            repairStatusWebView.clearCache(true);
+            // 하드웨어 가속 설정
+            repairStatusWebView.setLayerType(View.LAYER_TYPE_HARDWARE, null);
             
-            String timestamp = String.valueOf(System.currentTimeMillis());
-            String urlWithCacheBusting = "file:///android_asset/bluehands/status_board.html?v=" + timestamp;
-            repairStatusWebView.loadUrl(urlWithCacheBusting);
+            repairStatusWebView.loadUrl("file:///android_asset/bluehands/status_board.html");
         }
 
         if (videoWebView != null) {
@@ -264,12 +257,20 @@ public class AddOnBluehands {
         }
     }
 
+    private boolean isUpdating = false;
+
     private void updateRepairStatusWebView() {
-        // 메서드 실행 시간 측정 시작
+        if (isUpdating) {
+            Timber.w("Previous update still in progress, skipping...");
+            return;
+        }
+        
+        isUpdating = true;
         long startTimeNanos = System.nanoTime();
         
         if (repairStatusWebView == null) {
             Timber.e("repairStatusWebView is null");
+            isUpdating = false; // ✅ 리셋 추가
             return;
         }
 
@@ -291,10 +292,11 @@ public class AddOnBluehands {
                     double durationMs = (endTimeNanos - startTimeNanos) / 1_000_000.0;
                     Timber.d("updateRepairStatusWebView() JS execution completed: %.2f ms (empty data), result: %s", 
                             durationMs, result);
+                    isUpdating = false; // ✅ 리셋 추가
                 }
             });
             
-            return;
+            return; // ✅ 이제 안전하게 return 가능
         }
 
         StringBuilder jsBuilder = new StringBuilder();
@@ -349,6 +351,7 @@ public class AddOnBluehands {
                 double durationMs = (endTimeNanos - startTimeNanos) / 1_000_000.0;
                 Timber.d("updateRepairStatusWebView() JS execution completed: %.2f ms (data count: %d), result: %s", 
                         durationMs, carRepairInfoDisplayList.size(), result);
+                isUpdating = false; // ✅ 리셋 추가
             }
         });
     }
