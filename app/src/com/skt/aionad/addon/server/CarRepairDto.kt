@@ -4,6 +4,7 @@ import kotlinx.serialization.Serializable
 import com.skt.aionad.addon.bluehands.CarRepairInfo
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
+import timber.log.Timber
 
 @Serializable
 data class CarRepairRequest(
@@ -23,12 +24,27 @@ data class CarRepairRequest(
         // 시스템 시간을 "HH:mm:ss" 형식으로 가져와 requestedTime 설정
         val currentTime = LocalTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss"))
 
+        // EstimatedFinishTime 처리 로깅 및 형식 정규화
+        val processedEstimatedFinishTime = if (estimatedFinishTime.isNullOrBlank()) {
+            Timber.d("🔄 EstimatedFinishTime is null or blank, converting to null: '%s'", estimatedFinishTime ?: "null")
+            null
+        } else {
+            // "HH:mm" 형식을 "HH:mm:ss" 형식으로 정규화
+            val normalizedTime = if (estimatedFinishTime.split(":").size == 2) {
+                "$estimatedFinishTime:00"
+            } else {
+                estimatedFinishTime
+            }
+            Timber.d("🔄 EstimatedFinishTime processed: '%s' → '%s'", estimatedFinishTime, normalizedTime)
+            normalizedTime
+        }
+
         return CarRepairInfo(
             status,
             licensePlateNumber ?: "", // null인 경우 빈 문자열 (서버에서 URL 값으로 덮어씀)
             carModel,
             currentTime, // 요청 시간을 시스템 시간으로 설정
-            estimatedFinishTime
+            processedEstimatedFinishTime // 빈 문자열을 null로 변환
         )
     }
 }

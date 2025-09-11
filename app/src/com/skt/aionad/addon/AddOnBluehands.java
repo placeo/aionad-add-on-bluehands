@@ -385,10 +385,16 @@ public class AddOnBluehands {
     private String getStatusInfoText(CarRepairInfo carInfo) {
         if (carInfo.getRepairStatus() == CarRepairInfo.RepairStatus.COMPLETED) {
             return "완료";
-        } else if (carInfo.getEstimatedFinishTime() != null) {
-            String timeStr = CarRepairInfo.formatSecondsToTime(CarRepairInfo.parseTimeToSeconds(carInfo.getEstimatedFinishTime()));
-            String hhmmFormat = timeStr.substring(0, 5); // "HH:mm:ss"에서 "HH:mm"만 추출
-            return "예상 완료 시간 : <span class=\\\"time\\\">" + hhmmFormat + "</span>";
+        } else if (carInfo.getEstimatedFinishTime() != null && !carInfo.getEstimatedFinishTime().trim().isEmpty()) {
+            Integer timeInSeconds = CarRepairInfo.parseTimeToSeconds(carInfo.getEstimatedFinishTime());
+            if (timeInSeconds != null) {
+                String timeStr = CarRepairInfo.formatSecondsToTime(timeInSeconds);
+                if (timeStr.length() >= 5) {
+                    String hhmmFormat = timeStr.substring(0, 5); // "HH:mm:ss"에서 "HH:mm"만 추출
+                    return "예상 완료 시간 : <span class=\\\"time\\\">" + hhmmFormat + "</span>";
+                }
+            }
+            return "시간 미정";
         } else {
             return "시간 미정";
         }
@@ -411,9 +417,34 @@ public class AddOnBluehands {
     }
 
     /**
+     * 기존 데이터의 빈 문자열을 null로 정리
+     */
+    private void cleanupEmptyStringsInData() {
+        boolean dataChanged = false;
+        for (CarRepairInfo info : carRepairInfoJobList) {
+            if (info.getEstimatedFinishTime() != null && info.getEstimatedFinishTime().trim().isEmpty()) {
+                info.setEstimatedFinishTime(null);
+                Timber.d("🧹 Cleanup: EstimatedFinishTime '%s' → null for %s", "", info.getLicensePlateNumber());
+                dataChanged = true;
+            }
+            if (info.getRequestedTime() != null && info.getRequestedTime().trim().isEmpty()) {
+                info.setRequestedTime(null);
+                Timber.d("🧹 Cleanup: RequestedTime '%s' → null for %s", "", info.getLicensePlateNumber());
+                dataChanged = true;
+            }
+        }
+        if (dataChanged) {
+            Timber.i("🧹 Data cleanup completed - empty strings converted to null");
+        }
+    }
+
+    /**
      * carRepairInfoJobList를 완료시간 기준으로 정렬하여 carRepairInfoFinishTimeSortedList에 저장
      */
     private void sortCarRepairInfoByFinishTime() {
+        // 먼저 기존 데이터의 빈 문자열을 정리
+        cleanupEmptyStringsInData();
+        
         // synchronized 블록에서 안전한 스냅샷 생성
         List<CarRepairInfo> snapshot;
         synchronized(this) {
@@ -455,14 +486,21 @@ public class AddOnBluehands {
                     return -1;
                 }
                 
-                Integer thisTimeInSeconds = CarRepairInfo.parseTimeToSeconds(info1.getEstimatedFinishTime());
-                Integer otherTimeInSeconds = CarRepairInfo.parseTimeToSeconds(info2.getEstimatedFinishTime());
+                try {
+                    Integer thisTimeInSeconds = CarRepairInfo.parseTimeToSeconds(info1.getEstimatedFinishTime());
+                    Integer otherTimeInSeconds = CarRepairInfo.parseTimeToSeconds(info2.getEstimatedFinishTime());
 
-                if (thisTimeInSeconds == null && otherTimeInSeconds == null) return 0;
-                if (thisTimeInSeconds == null) return 1;
-                if (otherTimeInSeconds == null) return -1;
+                    if (thisTimeInSeconds == null && otherTimeInSeconds == null) return 0;
+                    if (thisTimeInSeconds == null) return 1;
+                    if (otherTimeInSeconds == null) return -1;
 
-                return Integer.compare(thisTimeInSeconds, otherTimeInSeconds);
+                    return Integer.compare(thisTimeInSeconds, otherTimeInSeconds);
+                } catch (Exception e) {
+                    Timber.e(e, "Error parsing time during sorting: info1=%s, info2=%s", 
+                            info1.getEstimatedFinishTime(), info2.getEstimatedFinishTime());
+                    // 에러 발생 시 차량번호로 정렬
+                    return info1.getLicensePlateNumber().compareTo(info2.getLicensePlateNumber());
+                }
             }
         });
         
@@ -471,15 +509,19 @@ public class AddOnBluehands {
         // 정렬 결과 디버그 로그
         for (int i = 0; i < carRepairInfoFinishTimeSortedList.size(); i++) {
             CarRepairInfo info = carRepairInfoFinishTimeSortedList.get(i);
+            // EstimatedFinishTime과 RequestedTime에 대한 안전한 처리
+            String requestedTimeStr = (info.getRequestedTime() != null && !info.getRequestedTime().trim().isEmpty()) ?
+                    CarRepairInfo.formatSecondsToTime(CarRepairInfo.parseTimeToSeconds(info.getRequestedTime())) : "null";
+            String estimatedFinishTimeStr = (info.getEstimatedFinishTime() != null && !info.getEstimatedFinishTime().trim().isEmpty()) ?
+                    CarRepairInfo.formatSecondsToTime(CarRepairInfo.parseTimeToSeconds(info.getEstimatedFinishTime())) : "null";
+            
             Timber.d("Sorted[%d]: %s %s - %s (RequestedTime: %s, EstimatedFinishTime: %s)", 
                 i, 
                 info.getLicensePlateNumber(), 
                 info.getCarModel(), 
                 info.getRepairStatus().name(),
-                info.getRequestedTime() != null ?
-                        CarRepairInfo.formatSecondsToTime(CarRepairInfo.parseTimeToSeconds(info.getRequestedTime())) : "null",
-                info.getEstimatedFinishTime() != null ?
-                        CarRepairInfo.formatSecondsToTime(CarRepairInfo.parseTimeToSeconds(info.getEstimatedFinishTime())) : "null"
+                requestedTimeStr,
+                estimatedFinishTimeStr
             );
         }
     }
@@ -528,6 +570,16 @@ public class AddOnBluehands {
      */
     public void addCarRepairInfo(CarRepairInfo carRepairInfo) {
         if (carRepairInfo != null) {
+            // 빈 문자열을 null로 정리
+            if (carRepairInfo.getEstimatedFinishTime() != null && carRepairInfo.getEstimatedFinishTime().trim().isEmpty()) {
+                carRepairInfo.setEstimatedFinishTime(null);
+                Timber.d("🧹 Cleaned empty EstimatedFinishTime to null for %s", carRepairInfo.getLicensePlateNumber());
+            }
+            if (carRepairInfo.getRequestedTime() != null && carRepairInfo.getRequestedTime().trim().isEmpty()) {
+                carRepairInfo.setRequestedTime(null);
+                Timber.d("🧹 Cleaned empty RequestedTime to null for %s", carRepairInfo.getLicensePlateNumber());
+            }
+            
             carRepairInfoJobList.add(carRepairInfo);
             Timber.i("Added new repair info: %s %s (Thread: %s)", 
                 carRepairInfo.getLicensePlateNumber(), 
@@ -603,8 +655,19 @@ public class AddOnBluehands {
      * REST API용: 차량 정보 추가 (중복 체크 포함)
      */
     public synchronized boolean addCarRepairInfoApi(CarRepairInfo carRepairInfo) {
-        if (carRepairInfo == null || carRepairInfo.getLicensePlateNumber() == null) {
+        if (carRepairInfo == null || carRepairInfo.getLicensePlateNumber() == null || carRepairInfo.getLicensePlateNumber().trim().isEmpty()) {
+            Timber.w("Invalid car repair info: %s", carRepairInfo);
             return false;
+        }
+        
+        // 빈 문자열을 null로 정리 (API 추가 시점에서 강제 정리)
+        if (carRepairInfo.getEstimatedFinishTime() != null && carRepairInfo.getEstimatedFinishTime().trim().isEmpty()) {
+            carRepairInfo.setEstimatedFinishTime(null);
+            Timber.d("🧹 API: Cleaned empty EstimatedFinishTime to null for %s", carRepairInfo.getLicensePlateNumber());
+        }
+        if (carRepairInfo.getRequestedTime() != null && carRepairInfo.getRequestedTime().trim().isEmpty()) {
+            carRepairInfo.setRequestedTime(null);
+            Timber.d("🧹 API: Cleaned empty RequestedTime to null for %s", carRepairInfo.getLicensePlateNumber());
         }
         
         // 중복 체크와 추가를 원자적으로 처리
@@ -616,9 +679,10 @@ public class AddOnBluehands {
         }
         
         carRepairInfoJobList.add(carRepairInfo);
-        Timber.i("Added new repair info via API: %s %s (Thread: %s)", 
+        Timber.i("Added new repair info via API: %s %s (EstimatedFinishTime: %s, Thread: %s)", 
             carRepairInfo.getLicensePlateNumber(), 
             carRepairInfo.getCarModel(),
+            carRepairInfo.getEstimatedFinishTime() != null ? carRepairInfo.getEstimatedFinishTime() : "null",
             Thread.currentThread().getName());
         return true;
     }
@@ -702,15 +766,20 @@ public class AddOnBluehands {
         for (int i = 0; i < carRepairInfoFinishTimeSortedList.size(); i++) {
             CarRepairInfo info = carRepairInfoFinishTimeSortedList.get(i);
             String maskedPlate = info.getLicensePlateNumber();
+            
+            // 빈 문자열도 null로 처리하여 표시
+            String requestedTimeDisplay = (info.getRequestedTime() != null && !info.getRequestedTime().trim().isEmpty()) ?
+                    info.getRequestedTime() : "null";
+            String estimatedFinishTimeDisplay = (info.getEstimatedFinishTime() != null && !info.getEstimatedFinishTime().trim().isEmpty()) ?
+                    info.getEstimatedFinishTime() : "null";
+            
             String line = String.format("Sorted[%d]: %s %s - %s (RequestedTime: %s, EstimatedFinishTime: %s)\n",
                     i,
                     maskedPlate,
                     info.getCarModel(),
                     info.getRepairStatus().name(),
-                    info.getRequestedTime() != null ?
-                            info.getRequestedTime() : "null",
-                    info.getEstimatedFinishTime() != null ?
-                            info.getEstimatedFinishTime() : "null"
+                    requestedTimeDisplay,
+                    estimatedFinishTimeDisplay
             );
             infoBuilder.append(line);
         }

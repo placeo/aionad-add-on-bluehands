@@ -72,20 +72,37 @@ public class CarRepairInfo implements Serializable, Comparable<CarRepairInfo> {
         this.requestedTime = requestedTime;
     }
 
-    // "HH:mm:ss" -> 초(Integer). 유효하지 않으면 null 반환
+    // "HH:mm:ss" 또는 "HH:mm" -> 초(Integer). 유효하지 않으면 null 반환
     public static Integer parseTimeToSeconds(String hhmmss) {
         if (hhmmss == null) return null;
         String s = hhmmss.trim();
+        if (s.isEmpty()) return null; // 빈 문자열 처리 추가
         String[] parts = s.split(":");
-        if (parts.length != 3) return null;
-        try {
-            int h = Integer.parseInt(parts[0]);
-            int m = Integer.parseInt(parts[1]);
-            int sec = Integer.parseInt(parts[2]);
-            if (h < 0 || h > 23 || m < 0 || m > 59 || sec < 0 || sec > 59) return null;
-            return h * 3600 + m * 60 + sec;
-        } catch (NumberFormatException e) {
-            return null;
+        
+        // "HH:mm:ss" 형식과 "HH:mm" 형식 모두 지원
+        if (parts.length == 2) {
+            // "HH:mm" 형식인 경우 초를 0으로 추가
+            try {
+                int h = Integer.parseInt(parts[0]);
+                int m = Integer.parseInt(parts[1]);
+                if (h < 0 || h > 23 || m < 0 || m > 59) return null;
+                return h * 3600 + m * 60; // 초는 0
+            } catch (NumberFormatException e) {
+                return null;
+            }
+        } else if (parts.length == 3) {
+            // "HH:mm:ss" 형식
+            try {
+                int h = Integer.parseInt(parts[0]);
+                int m = Integer.parseInt(parts[1]);
+                int sec = Integer.parseInt(parts[2]);
+                if (h < 0 || h > 23 || m < 0 || m > 59 || sec < 0 || sec > 59) return null;
+                return h * 3600 + m * 60 + sec;
+            } catch (NumberFormatException e) {
+                return null;
+            }
+        } else {
+            return null; // 잘못된 형식
         }
     }
 
