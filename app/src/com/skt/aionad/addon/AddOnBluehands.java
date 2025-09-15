@@ -90,6 +90,7 @@ public class AddOnBluehands {
             
             // 새로운 사이클 시작 시에만 데이터를 새로 로드하고 정렬
             if (currentPageIndex == 0) {
+                /* 
                 testDataInitCount++;
                 if (testDataInitCount == 1) {
                     addCarRepairInfoForTest();
@@ -97,6 +98,7 @@ public class AddOnBluehands {
                 } else {
                     Timber.d("Test data already initialized (count: %d). Skipping addCarRepairInfoForTest()", testDataInitCount);
                 }
+                */    
                 
                 sortCarRepairInfoByFinishTime();
                 Timber.i("New cycle started: JobList refreshed and sorted");

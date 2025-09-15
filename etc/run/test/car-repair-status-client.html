@@ -598,7 +598,7 @@
                     <h3>${car.licensePlateNumber}</h3>
                     <p><strong>모델:</strong> ${car.carModel}</p>
                     <p><strong>상태:</strong> <span class="car-status status-${car.repairStatus.toLowerCase().replace('_', '-')}">${getStatusText(car.repairStatus)}</span></p>
-                    <p><strong>완료 예정:</strong> ${car.estimatedFinishTime || '미정'}</p>
+                    ${car.repairStatus !== 'COMPLETED' ? `<p><strong>완료 예정:</strong> ${car.estimatedFinishTime || '미정'}</p>` : ''}
                     <div style="margin-top: 15px;">
                         <button class="btn btn-info" style="font-size: 12px; padding: 5px 10px;" onclick="fillUpdateForm('${car.licensePlateNumber}', '${car.carModel}', '${car.repairStatus}', '${car.estimatedFinishTime || ''}')">수정</button>
                         <button class="btn btn-danger" style="font-size: 12px; padding: 5px 10px;" onclick="quickDelete('${car.licensePlateNumber}')">삭제</button>
