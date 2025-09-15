@@ -108,7 +108,7 @@ public class AddOnBluehands {
             updateDisplayListForCurrentPage();
 
             // ✅ 디버깅 로그 추가
-            Timber.w("🎯 About to display WebView - Page: %d, displayList size: %d, SortedList size: %d", 
+            Timber.w("About to display WebView - Page: %d, displayList size: %d, SortedList size: %d", 
                     currentPageIndex, carRepairInfoDisplayList.size(), carRepairInfoFinishTimeSortedList.size());
 
             // ✅ 화면에 표시 먼저!
@@ -426,17 +426,17 @@ public class AddOnBluehands {
         for (CarRepairInfo info : carRepairInfoJobList) {
             if (info.getEstimatedFinishTime() != null && info.getEstimatedFinishTime().trim().isEmpty()) {
                 info.setEstimatedFinishTime(null);
-                Timber.d("🧹 Cleanup: EstimatedFinishTime '%s' → null for %s", "", info.getLicensePlateNumber());
+                Timber.d("Cleanup: EstimatedFinishTime '%s' → null for %s", "", info.getLicensePlateNumber());
                 dataChanged = true;
             }
             if (info.getRequestedTime() != null && info.getRequestedTime().trim().isEmpty()) {
                 info.setRequestedTime(null);
-                Timber.d("🧹 Cleanup: RequestedTime '%s' → null for %s", "", info.getLicensePlateNumber());
+                Timber.d("Cleanup: RequestedTime '%s' → null for %s", "", info.getLicensePlateNumber());
                 dataChanged = true;
             }
         }
         if (dataChanged) {
-            Timber.i("🧹 Data cleanup completed - empty strings converted to null");
+            Timber.i("Data cleanup completed - empty strings converted to null");
         }
     }
 
@@ -533,7 +533,7 @@ public class AddOnBluehands {
      */
     private void updateDisplayListForCurrentPage() {
         // ✅ 데이터 일관성 체크
-        Timber.d("🔍 Before display update - JobList: %d, SortedList: %d, CurrentPage: %d", 
+        Timber.d("Before display update - JobList: %d, SortedList: %d, CurrentPage: %d", 
                 carRepairInfoJobList.size(), carRepairInfoFinishTimeSortedList.size(), currentPageIndex);
         
         carRepairInfoDisplayList.clear();
@@ -575,11 +575,11 @@ public class AddOnBluehands {
             // 빈 문자열을 null로 정리
             if (carRepairInfo.getEstimatedFinishTime() != null && carRepairInfo.getEstimatedFinishTime().trim().isEmpty()) {
                 carRepairInfo.setEstimatedFinishTime(null);
-                Timber.d("🧹 Cleaned empty EstimatedFinishTime to null for %s", carRepairInfo.getLicensePlateNumber());
+                Timber.d("Cleaned empty EstimatedFinishTime to null for %s", carRepairInfo.getLicensePlateNumber());
             }
             if (carRepairInfo.getRequestedTime() != null && carRepairInfo.getRequestedTime().trim().isEmpty()) {
                 carRepairInfo.setRequestedTime(null);
-                Timber.d("🧹 Cleaned empty RequestedTime to null for %s", carRepairInfo.getLicensePlateNumber());
+                Timber.d("Cleaned empty RequestedTime to null for %s", carRepairInfo.getLicensePlateNumber());
             }
             
             carRepairInfoJobList.add(carRepairInfo);
@@ -665,11 +665,11 @@ public class AddOnBluehands {
         // 빈 문자열을 null로 정리 (API 추가 시점에서 강제 정리)
         if (carRepairInfo.getEstimatedFinishTime() != null && carRepairInfo.getEstimatedFinishTime().trim().isEmpty()) {
             carRepairInfo.setEstimatedFinishTime(null);
-            Timber.d("🧹 API: Cleaned empty EstimatedFinishTime to null for %s", carRepairInfo.getLicensePlateNumber());
+            Timber.d("API: Cleaned empty EstimatedFinishTime to null for %s", carRepairInfo.getLicensePlateNumber());
         }
         if (carRepairInfo.getRequestedTime() != null && carRepairInfo.getRequestedTime().trim().isEmpty()) {
             carRepairInfo.setRequestedTime(null);
-            Timber.d("🧹 API: Cleaned empty RequestedTime to null for %s", carRepairInfo.getLicensePlateNumber());
+            Timber.d("API: Cleaned empty RequestedTime to null for %s", carRepairInfo.getLicensePlateNumber());
         }
         
         // 중복 체크와 추가를 원자적으로 처리
@@ -928,7 +928,7 @@ public class AddOnBluehands {
         repairStatusWebView.evaluateJavascript(jsInitialize, new ValueCallback<String>() {
             @Override
             public void onReceiveValue(String initResult) {
-                Timber.v("🧹 Table initialized, now filling data...");
+                Timber.v("Table initialized, now filling data...");
                 
                 // 2단계: 실제 데이터로 테이블 채우기
                 fillTableWithDataSync(startTimeNanos);
@@ -992,13 +992,13 @@ public class AddOnBluehands {
             public void onReceiveValue(String result) {
                 long endTimeNanos = System.nanoTime();
                 double durationMs = (endTimeNanos - startTimeNanos) / 1_000_000.0;
-                Timber.d("✅ WebView table updated: %.2f ms (data count: %d), result: %s", 
+                Timber.d("WebView table updated: %.2f ms (data count: %d), result: %s", 
                         durationMs, carRepairInfoDisplayList.size(), result);
                 
                 // ✅ 추가 동기화 확인 후 다음 단계 진행
                 Handler syncHandler = new Handler(Looper.getMainLooper());
                 syncHandler.postDelayed(() -> {
-                    Timber.i("🎯 Display synchronization completed for page %d", currentPageIndex);
+                    Timber.i("Display synchronization completed for page %d", currentPageIndex);
                     onWebViewUpdateCompleted();
                 }, 50); // 50ms 추가 대기로 DOM 렌더링 완료 보장
             }
@@ -1013,7 +1013,7 @@ public class AddOnBluehands {
         // ✅ 주기적 완전 메모리 재설정 확인
         performJavaScriptMemoryReset();
         
-        Timber.i("✅ WebView update completed successfully for page %d", currentPageIndex);
+        Timber.i("WebView update completed successfully for page %d", currentPageIndex);
         
         // ✅ 화면 표시 완료 후 다음 페이지 준비
         moveToNextPageOrRestart();
@@ -1025,7 +1025,7 @@ public class AddOnBluehands {
     private void scheduleNextUpdate() {
         long interval = ConfigManager.getInstance().getCarRepairInfoDisplayInterval();
         periodicUpdateHandler.postDelayed(periodicUpdateRunnable, interval);
-        Timber.v("⏰ Next update scheduled in %d ms", interval);
+        Timber.v("Next update scheduled in %d ms", interval);
     }
 
     // ✅ 매 업데이트마다 실행되는 경량 메모리 정리
@@ -1099,7 +1099,7 @@ public class AddOnBluehands {
                 repairStatusWebView.evaluateJavascript(jsMemoryCleanup, new ValueCallback<String>() {
                     @Override
                     public void onReceiveValue(String result) {
-                        Timber.d("🧹 JavaScript memory cleanup result: %s", result);
+                        Timber.d("JavaScript memory cleanup result: %s", result);
                         
                         // ✅ 2단계: WebView 캐시 완전 정리
                         Handler memoryHandler = new Handler(Looper.getMainLooper());
@@ -1138,7 +1138,7 @@ public class AddOnBluehands {
                 String urlWithCacheBusting = "file:///android_asset/bluehands/status_board.html?v=" + timestamp;
                 repairStatusWebView.loadUrl(urlWithCacheBusting);
                 
-                Timber.i("✅ WebView completely reset and reloaded");
+                Timber.i("WebView completely reset and reloaded");
             }, 200);
         }
     }
