@@ -88,3 +88,47 @@ sleep 7
 curl -X DELETE http://192.168.10.9:8080/api/car-repair/005마555
 curl -X DELETE http://192.168.10.9:8080/api/car-repair/003다333
 curl -X DELETE http://192.168.10.9:8080/api/car-repair/002나222 
+
+sleep 7
+
+############################
+# car repair info addition
+############################
+
+
+curl -X POST http://192.168.10.9:8080/api/car-repair \
+-H "Content-Type: application/json" \
+-d '{
+  "licensePlateNumber": "0017갸0017",
+  "carModel": "소나타",
+  "repairStatus": "IN_PROGRESS",
+  "estimatedFinishTime": "14:30:00"
+}'
+
+curl -X POST http://192.168.10.9:8080/api/car-repair \
+-H "Content-Type: application/json" \
+-d '{
+  "licensePlateNumber": "0018타0018",
+  "carModel": "X5",
+  "repairStatus": "IN_PROGRESS",
+  "estimatedFinishTime": "18:30:00"
+}'
+
+curl -X POST http://192.168.10.9:8080/api/car-repair \
+-H "Content-Type: application/json" \
+-d '{
+  "licensePlateNumber": "0019하0019",
+  "carModel": "르망",
+  "repairStatus": "FINAL_INSPECTION",
+  "estimatedFinishTime": "18:00:00"
+}'
+
+curl -X POST http://192.168.10.9:8080/api/car-repair \
+-H "Content-Type: application/json" \
+-d '{
+  "licensePlateNumber": "0020보0020",
+  "carModel": "E500",
+  "repairStatus": "FINAL_INSPECTION",
+  "estimatedFinishTime": "17:00:00"
+}
+
