@@ -57,7 +57,7 @@
             min-width: 100px;
         }
 
-        .config-row input {
+        .config-row input, .config-row select {
             flex: 1;
             padding: 10px;
             border: 2px solid #ddd;
@@ -179,7 +179,7 @@
 
         .car-list {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            grid-template-columns: repeat(5, 1fr);
             gap: 20px;
             margin-top: 20px;
         }
@@ -246,6 +246,10 @@
                 grid-template-columns: 1fr;
             }
             
+            .car-list {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            
             .config-row {
                 flex-direction: column;
                 align-items: stretch;
@@ -254,6 +258,12 @@
             .config-row label {
                 min-width: auto;
                 margin-bottom: 5px;
+            }
+        }
+
+        @media (max-width: 1200px) {
+            .car-list {
+                grid-template-columns: repeat(3, 1fr);
             }
         }
     </style>
@@ -268,7 +278,12 @@
         <div class="server-config">
             <div class="config-row">
                 <label>서버 IP:</label>
-                <input type="text" id="serverIp" value="172.23.249.90" placeholder="서버 IP 주소">
+                <select id="serverIpSelect" onchange="handleIpSelection()">
+                    <option value="172.23.249.90">172.23.249.90</option>
+                    <option value="192.168.10.9">192.168.10.9</option>
+                    <option value="custom">직접 입력</option>
+                </select>
+                <input type="text" id="serverIp" value="172.23.249.90" placeholder="서버 IP 주소 (ESC 키로 드롭다운으로 돌아가기)" style="display: none;" onkeydown="handleIpInputKeydown(event)">
             </div>
             <div class="config-row">
                 <label>포트:</label>
@@ -389,9 +404,52 @@
     </div>
 
     <script>
+        // IP 선택 처리
+        function handleIpSelection() {
+            const selectElement = document.getElementById('serverIpSelect');
+            const inputElement = document.getElementById('serverIp');
+            
+            if (selectElement.value === 'custom') {
+                // 직접 입력 모드
+                selectElement.style.display = 'none';
+                inputElement.style.display = 'block';
+                inputElement.focus();
+                inputElement.value = '';
+            } else {
+                // 미리 정의된 IP 선택
+                inputElement.value = selectElement.value;
+            }
+        }
+
+        // IP 입력 필드 키보드 이벤트 처리
+        function handleIpInputKeydown(event) {
+            if (event.key === 'Escape') {
+                // ESC 키를 누르면 드롭다운으로 돌아가기
+                const selectElement = document.getElementById('serverIpSelect');
+                const inputElement = document.getElementById('serverIp');
+                
+                selectElement.style.display = 'block';
+                inputElement.style.display = 'none';
+                selectElement.value = '172.23.249.90'; // 기본값으로 설정
+                inputElement.value = '172.23.249.90';
+                selectElement.focus();
+            }
+        }
+
         // 서버 URL 구성
         function getServerUrl() {
-            const ip = document.getElementById('serverIp').value || '172.23.249.90';
+            const selectElement = document.getElementById('serverIpSelect');
+            const inputElement = document.getElementById('serverIp');
+            
+            let ip;
+            if (selectElement.style.display === 'none') {
+                // 직접 입력 모드
+                ip = inputElement.value || '172.23.249.90';
+            } else {
+                // 드롭다운 선택 모드
+                ip = selectElement.value || '172.23.249.90';
+            }
+            
             const port = document.getElementById('serverPort').value || '8080';
             return `http://${ip}:${port}`;
         }
